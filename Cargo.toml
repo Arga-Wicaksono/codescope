@@ -1,0 +1,53 @@
+[package]
+name = "codescope"
+version = "1.0.0"
+edition = "2021"
+description = "Scope your codebase — file, content, and web search in one binary"
+authors = ["Arga Wicaksono"]
+license = "MIT"
+repository = "https://github.com/Arga-Wicaksono/codescope"
+keywords = ["cli", "search", "fuzzy", "ripgrep", "find", "code", "scope"]
+categories = ["Command Line Interface", "Search", "Development tools"]
+homepage = "https://github.com/Arga-Wicaksono/codescope"
+readme = "README.md"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+ignore = "0.4"
+fuzzy-matcher = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+urlencoding = "2"
+regex = "1"
+colored = "2"
+is-terminal = "0.4"
+rayon = "1"
+dirs = "5"
+dialoguer = { version = "0.11", features = ["fuzzy-select"], optional = true }
+reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false, optional = true }
+scraper = { version = "0.22", optional = true }
+clap_complete = "4"
+
+[features]
+default = ["web-search", "interactive"]
+web-search = ["reqwest", "scraper"]
+interactive = ["dialoguer"]
+
+[dev-dependencies]
+tempfile = "3"
+assert_cmd = "2"
+predicates = "3"
+clap_mangen = "0.2"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+
+[[bin]]
+name = "cs"
+path = "src/main.rs"
+
+[lib]
+name = "codescope"
+path = "src/lib.rs"
