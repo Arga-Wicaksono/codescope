@@ -8,7 +8,6 @@
   <img src="https://img.shields.io/badge/license-MIT-yellow?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/tests-146%20passed-brightgreen?style=flat-square" alt="Tests">
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform">
-  <a href="https://github.com/Arga-Wicaksono/codescope/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Arga-Wicaksono/codescope/ci.yml?branch=main&style=flat-square" alt="CI"></a>
 </p>
 
 <h1 align="center">cs — Code Scope</h1>
@@ -83,9 +82,22 @@ rg "TODO" | fzf
 
 ## Installation
 
-### Cargo install
+### Download prebuilt binary
+
+Download from [GitHub Releases](https://github.com/Arga-Wicaksono/codescope/releases/latest):
+
+| Platform | Binary |
+|----------|--------|
+| Linux x86_64 | `cs-x86_64-linux` |
+| macOS Intel | `cs-x86_64-macos` |
+| macOS Apple Silicon | `cs-aarch64-macos` |
+| Windows | `cs-x86_64-windows.exe` |
 
 ```bash
+# Linux / macOS
+curl -sL https://github.com/Arga-Wicaksono/codescope/releases/latest/download/cs-x86_64-linux -o cs && chmod +x cs && sudo mv cs /usr/local/bin/
+
+# Or install from source
 cargo install --git https://github.com/Arga-Wicaksono/codescope.git
 ```
 
@@ -308,6 +320,12 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 
 ---
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
+---
+
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
@@ -316,5 +334,6 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 <p align="center">
   <strong>Built with Rust by Arga Wicaksono</strong> ·
-  <a href="https://github.com/Arga-Wicaksono/codescope">GitHub</a>
+  <a href="https://github.com/Arga-Wicaksono/codescope">GitHub</a> ·
+  <a href="https://github.com/Arga-Wicaksono/codescope/releases">Releases</a>
 </p>
