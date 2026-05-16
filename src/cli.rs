@@ -381,6 +381,238 @@ pub enum Commands {
         json: bool,
     },
 
+    /// Find symbol definitions with metadata (function, class, struct, etc.)
+    Symbol {
+        /// Symbol name to find
+        name: String,
+
+        /// Directory to search (default: current directory)
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        #[arg(long)]
+        exclude: Option<String>,
+
+        #[arg(long, conflicts_with = "extension")]
+        file_type: Option<FileType>,
+
+        #[arg(short = 'e', long)]
+        extension: Option<String>,
+
+        /// Filter by symbol kind (function, class, struct, enum, trait, etc.)
+        #[arg(long)]
+        symbol_type: Option<String>,
+
+        #[arg(long)]
+        no_ignore: bool,
+
+        #[arg(long)]
+        depth: Option<usize>,
+
+        /// Output as JSON
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
+    /// Find all references to a symbol (not definitions)
+    Refs {
+        /// Symbol name
+        name: String,
+
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        #[arg(long)]
+        exclude: Option<String>,
+
+        #[arg(long, conflicts_with = "extension")]
+        file_type: Option<FileType>,
+
+        #[arg(short = 'e', long)]
+        extension: Option<String>,
+
+        #[arg(long)]
+        no_ignore: bool,
+
+        #[arg(long)]
+        depth: Option<usize>,
+
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
+    /// Find all functions that call a specific function
+    Callers {
+        /// Function name
+        name: String,
+
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        #[arg(long)]
+        exclude: Option<String>,
+
+        #[arg(long, conflicts_with = "extension")]
+        file_type: Option<FileType>,
+
+        #[arg(short = 'e', long)]
+        extension: Option<String>,
+
+        #[arg(long)]
+        no_ignore: bool,
+
+        #[arg(long)]
+        depth: Option<usize>,
+
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
+    /// List all symbols in a file or directory
+    Symbols {
+        /// File or directory path
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        #[arg(long)]
+        exclude: Option<String>,
+
+        #[arg(long, conflicts_with = "extension")]
+        file_type: Option<FileType>,
+
+        #[arg(short = 'e', long)]
+        extension: Option<String>,
+
+        /// Filter by symbol kind
+        #[arg(long)]
+        symbol_type: Option<String>,
+
+        #[arg(long)]
+        no_ignore: bool,
+
+        #[arg(long)]
+        depth: Option<usize>,
+
+        /// Maximum results (default: 100)
+        #[arg(short = 'l', long)]
+        limit: Option<usize>,
+
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
+    /// Extract relevant context for a topic (files, symbols, dependencies)
+    Context {
+        /// Topic to extract context for
+        topic: String,
+
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        #[arg(long)]
+        exclude: Option<String>,
+
+        #[arg(long, conflicts_with = "extension")]
+        file_type: Option<FileType>,
+
+        #[arg(short = 'e', long)]
+        extension: Option<String>,
+
+        #[arg(long)]
+        no_ignore: bool,
+
+        #[arg(long)]
+        depth: Option<usize>,
+
+        /// Maximum context items (default: 20)
+        #[arg(short = 'l', long)]
+        max_items: Option<usize>,
+
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
+    /// Pack context into token-efficient format for LLM prompts
+    Pack {
+        /// Description of what context is needed
+        description: String,
+
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        #[arg(long)]
+        exclude: Option<String>,
+
+        #[arg(long, conflicts_with = "extension")]
+        file_type: Option<FileType>,
+
+        #[arg(short = 'e', long)]
+        extension: Option<String>,
+
+        #[arg(long)]
+        no_ignore: bool,
+
+        #[arg(long)]
+        depth: Option<usize>,
+
+        /// Token budget (default: 8000)
+        #[arg(short = 'b', long)]
+        budget: Option<usize>,
+
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
+    /// Trace execution flow through function calls
+    Trace {
+        /// Symbol name to start tracing from
+        name: String,
+
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        #[arg(long)]
+        exclude: Option<String>,
+
+        #[arg(long, conflicts_with = "extension")]
+        file_type: Option<FileType>,
+
+        #[arg(short = 'e', long)]
+        extension: Option<String>,
+
+        #[arg(long)]
+        no_ignore: bool,
+
+        #[arg(long)]
+        depth: Option<usize>,
+
+        /// Maximum trace depth (default: 5)
+        #[arg(short = 'd', long)]
+        max_depth: Option<usize>,
+
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
+    /// Start MCP server or HTTP API
+    Serve {
+        /// Start MCP server (JSON-RPC 2.0 over stdin/stdout)
+        #[arg(long)]
+        mcp: bool,
+
+        /// Start HTTP API server
+        #[arg(long)]
+        http: bool,
+
+        /// HTTP port (default: 4567)
+        #[arg(short = 'p', long, default_value_t = 4567)]
+        port: u16,
+
+        /// Working directory (default: current directory)
+        #[arg(short, long, default_value = ".")]
+        path: String,
+    },
+
     /// Show configuration file path and current config
     Config,
 

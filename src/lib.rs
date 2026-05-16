@@ -33,6 +33,9 @@ pub mod explain;
 pub mod history;
 pub mod across;
 pub mod stats;
+pub mod symbol;
+pub mod context;
+pub mod serve;
 pub mod cli;
 
 #[cfg(feature = "interactive")]

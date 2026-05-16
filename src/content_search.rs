@@ -499,6 +499,39 @@ pub fn collect_content_results(
     Ok(results)
 }
 
+/// Collect content results for MCP/HTTP API (raw, no validation needed).
+pub fn collect_content_results_raw(
+    pattern: &str,
+    path: &str,
+    extension: Option<&str>,
+    mode: MatchMode,
+    _exclude: Option<&str>,
+    case_insensitive: bool,
+    no_ignore: bool,
+    context: usize,
+    depth: Option<usize>,
+    invert: bool,
+    results: &mut Vec<(String, String, usize, String, i64)>,
+) -> Result<(), String> {
+    let matcher = SkimMatcherV2::default();
+    let regex_pattern = if case_insensitive {
+        regex::RegexBuilder::new(pattern).case_insensitive(true).build().ok()
+    } else {
+        regex::Regex::new(pattern).ok()
+    };
+    let extensions: Option<Vec<&str>> = extension.map(|e| vec![e]);
+    let files = collect_files(path, extensions.as_deref(), None, no_ignore, depth)?;
+    let mut raw: Vec<(String, String, usize, String, i64)> = files
+        .par_iter()
+        .flat_map(|file_path| {
+            search_single_file(file_path, pattern, mode, case_insensitive, &matcher, &regex_pattern, invert)
+        })
+        .collect();
+    raw.sort_by(|a, b| b.4.cmp(&a.4));
+    results.extend(raw);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

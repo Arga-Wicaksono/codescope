@@ -202,6 +202,43 @@ pub fn collect_file_results(
     Ok(results)
 }
 
+/// Collect file results for MCP/HTTP API (raw, no validation needed).
+pub fn collect_file_results_raw(
+    pattern: &str,
+    path: &str,
+    _exclude: Option<&str>,
+    extension: Option<&str>,
+    _hidden: bool,
+    case_insensitive: bool,
+    no_ignore: bool,
+    _depth: Option<usize>,
+    results: &mut Vec<(String, String, i64)>,
+) -> Result<(), String> {
+    let matcher = SkimMatcherV2::default();
+    let mut builder = WalkBuilder::new(path);
+    builder.hidden(false);
+    builder.git_ignore(!no_ignore);
+    builder.git_global(!no_ignore);
+    builder.git_exclude(!no_ignore);
+
+    for entry in builder.build() {
+        let entry = match entry { Ok(e) => e, Err(_) => continue };
+        if !entry.file_type().map_or(false, |ft| ft.is_file()) { continue; }
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        if let Some(ext) = extension {
+            if !file_name.ends_with(&format!(".{}", ext)) { continue; }
+        }
+        let search_name = if case_insensitive { file_name.to_lowercase() } else { file_name.clone() };
+        let search_pattern = if case_insensitive { pattern.to_lowercase() } else { pattern.to_string() };
+        if let Some(score) = matcher.fuzzy_match(&search_name, &search_pattern) {
+            let full_path = entry.path().to_string_lossy().to_string();
+            results.push((file_name, full_path, score));
+        }
+    }
+    results.sort_by(|a, b| b.2.cmp(&a.2));
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

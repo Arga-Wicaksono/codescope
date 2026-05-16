@@ -142,6 +142,96 @@ pub struct HistoryResultItem {
     pub elapsed_secs: f64,
 }
 
+/// Result item for `cs symbol`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct SymbolResultItem {
+    pub name: String,
+    pub kind: String,
+    pub file: String,
+    pub line: usize,
+    pub column: usize,
+    pub language: String,
+    pub signature: String,
+}
+
+/// Result item for `cs refs`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct RefsResultItem {
+    pub file: String,
+    pub line: usize,
+    pub content: String,
+    pub language: String,
+}
+
+/// Result item for `cs callers`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct CallersResultItem {
+    pub caller_name: String,
+    pub caller_file: String,
+    pub caller_line: usize,
+    pub caller_kind: String,
+    pub call_site_line: usize,
+    pub call_context: String,
+}
+
+/// Result item for `cs symbols`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct SymbolsResultItem {
+    pub name: String,
+    pub kind: String,
+    pub file: String,
+    pub line: usize,
+    pub column: usize,
+    pub language: String,
+    pub signature: String,
+}
+
+/// Result item for `cs context`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ContextResultItem {
+    pub source_type: String,
+    pub file: String,
+    pub line: Option<usize>,
+    pub symbol_name: Option<String>,
+    pub symbol_kind: Option<String>,
+    pub language: String,
+    pub relevance: f64,
+    pub snippet: String,
+    pub reason: String,
+}
+
+/// Result item for `cs pack`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct PackResultItem {
+    pub source_type: String,
+    pub file: String,
+    pub line: Option<usize>,
+    pub symbol_name: Option<String>,
+    pub language: String,
+    pub relevance: f64,
+    pub snippet: String,
+    pub reason: String,
+}
+
+/// Result item for `cs trace`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct TraceResultItem {
+    pub step: usize,
+    pub name: String,
+    pub kind: String,
+    pub file: String,
+    pub line: usize,
+    pub signature: String,
+    pub depth: usize,
+}
+
 // ---------------------------------------------------------------------------
 // Envelope builder
 // ---------------------------------------------------------------------------
@@ -239,7 +329,8 @@ pub fn print_json(output: &serde_json::Value) {
 ///
 /// Supported names: `"file"`, `"content"`, `"content-replace"`,
 /// `"content-count"`, `"web"`, `"where"`, `"stats"`, `"recent"`, `"across"`,
-/// `"open"`, `"explain"`, `"history"`.
+/// `"open"`, `"explain"`, `"history"`, `"symbol"`, `"refs"`, `"callers"`,
+/// `"symbols"`, `"context"`, `"pack"`, `"trace"`.
 pub fn get_schema(command: &str) -> Option<serde_json::Value> {
     let raw = match command {
         "file" => SCHEMA_FILE,
@@ -254,6 +345,13 @@ pub fn get_schema(command: &str) -> Option<serde_json::Value> {
         "open" => SCHEMA_OPEN,
         "explain" => SCHEMA_EXPLAIN,
         "history" => SCHEMA_HISTORY,
+        "symbol" => SCHEMA_SYMBOL,
+        "refs" => SCHEMA_REFS,
+        "callers" => SCHEMA_CALLERS,
+        "symbols" => SCHEMA_SYMBOLS,
+        "context" => SCHEMA_CONTEXT,
+        "pack" => SCHEMA_PACK,
+        "trace" => SCHEMA_TRACE,
         _ => return None,
     };
     Some(serde_json::from_str(raw).expect("embedded schema must be valid JSON"))
@@ -643,6 +741,249 @@ const SCHEMA_HISTORY: &str = r##"{
   "additionalProperties": false
 }"##;
 
+const SCHEMA_SYMBOL: &str = r##"{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs symbol output",
+  "type": "object",
+  "required": ["tool","version","command","query","source","count","elapsed_secs","results"],
+  "properties": {
+    "tool":          { "type": "string", "const": "codescope" },
+    "version":       { "type": "string" },
+    "command":       { "type": "string", "const": "symbol" },
+    "query":         { "type": "string" },
+    "source":        { "type": "string", "enum": ["filesystem","stdin","web"] },
+    "count":         { "type": "integer", "minimum": 0 },
+    "elapsed_secs":  { "type": "number" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name","kind","file","line","column","language","signature"],
+        "properties": {
+          "name":       { "type": "string" },
+          "kind":       { "type": "string" },
+          "file":       { "type": "string" },
+          "line":       { "type": "integer", "minimum": 1 },
+          "column":     { "type": "integer", "minimum": 1 },
+          "language":   { "type": "string" },
+          "signature":  { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}"##;
+
+const SCHEMA_REFS: &str = r##"{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs refs output",
+  "type": "object",
+  "required": ["tool","version","command","query","source","count","elapsed_secs","results"],
+  "properties": {
+    "tool":          { "type": "string", "const": "codescope" },
+    "version":       { "type": "string" },
+    "command":       { "type": "string", "const": "refs" },
+    "query":         { "type": "string" },
+    "source":        { "type": "string", "enum": ["filesystem","stdin","web"] },
+    "count":         { "type": "integer", "minimum": 0 },
+    "elapsed_secs":  { "type": "number" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file","line","content","language"],
+        "properties": {
+          "file":      { "type": "string" },
+          "line":      { "type": "integer", "minimum": 1 },
+          "content":   { "type": "string" },
+          "language":  { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}"##;
+
+const SCHEMA_CALLERS: &str = r##"{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs callers output",
+  "type": "object",
+  "required": ["tool","version","command","query","source","count","elapsed_secs","results"],
+  "properties": {
+    "tool":          { "type": "string", "const": "codescope" },
+    "version":       { "type": "string" },
+    "command":       { "type": "string", "const": "callers" },
+    "query":         { "type": "string" },
+    "source":        { "type": "string", "enum": ["filesystem","stdin","web"] },
+    "count":         { "type": "integer", "minimum": 0 },
+    "elapsed_secs":  { "type": "number" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["caller_name","caller_file","caller_line","caller_kind","call_site_line","call_context"],
+        "properties": {
+          "caller_name":    { "type": "string" },
+          "caller_file":    { "type": "string" },
+          "caller_line":    { "type": "integer", "minimum": 1 },
+          "caller_kind":    { "type": "string" },
+          "call_site_line": { "type": "integer", "minimum": 1 },
+          "call_context":   { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}"##;
+
+const SCHEMA_SYMBOLS: &str = r##"{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs symbols output",
+  "type": "object",
+  "required": ["tool","version","command","query","source","count","elapsed_secs","total_symbols","languages","results"],
+  "properties": {
+    "tool":            { "type": "string", "const": "codescope" },
+    "version":         { "type": "string" },
+    "command":         { "type": "string", "const": "symbols" },
+    "query":           { "type": "string" },
+    "source":          { "type": "string", "enum": ["filesystem","stdin","web"] },
+    "count":           { "type": "integer", "minimum": 0 },
+    "elapsed_secs":    { "type": "number" },
+    "total_symbols":   { "type": "integer", "minimum": 0 },
+    "languages":       { "type": "array", "items": { "type": "string" } },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name","kind","file","line","column","language","signature"],
+        "properties": {
+          "name":       { "type": "string" },
+          "kind":       { "type": "string" },
+          "file":       { "type": "string" },
+          "line":       { "type": "integer", "minimum": 1 },
+          "column":     { "type": "integer", "minimum": 1 },
+          "language":   { "type": "string" },
+          "signature":  { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}"##;
+
+const SCHEMA_CONTEXT: &str = r##"{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs context output",
+  "type": "object",
+  "required": ["tool","version","command","query","source","count","elapsed_secs","results"],
+  "properties": {
+    "tool":          { "type": "string", "const": "codescope" },
+    "version":       { "type": "string" },
+    "command":       { "type": "string", "const": "context" },
+    "query":         { "type": "string" },
+    "source":        { "type": "string", "enum": ["filesystem","stdin","web"] },
+    "count":         { "type": "integer", "minimum": 0 },
+    "elapsed_secs":  { "type": "number" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_type","file","language","relevance","snippet","reason"],
+        "properties": {
+          "source_type":  { "type": "string" },
+          "file":         { "type": "string" },
+          "line":         { "type": ["integer","null"], "minimum": 1 },
+          "symbol_name":  { "type": ["string","null"] },
+          "symbol_kind":  { "type": ["string","null"] },
+          "language":     { "type": "string" },
+          "relevance":    { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+          "snippet":      { "type": "string" },
+          "reason":       { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}"##;
+
+const SCHEMA_PACK: &str = r##"{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs pack output",
+  "type": "object",
+  "required": ["tool","version","command","query","source","count","elapsed_secs","packed_context","token_budget","estimated_tokens","truncated","results"],
+  "properties": {
+    "tool":              { "type": "string", "const": "codescope" },
+    "version":           { "type": "string" },
+    "command":           { "type": "string", "const": "pack" },
+    "query":             { "type": "string" },
+    "source":            { "type": "string", "enum": ["filesystem","stdin","web"] },
+    "count":             { "type": "integer", "minimum": 0 },
+    "elapsed_secs":      { "type": "number" },
+    "packed_context":    { "type": "string" },
+    "token_budget":      { "type": "integer", "minimum": 1 },
+    "estimated_tokens":  { "type": "integer", "minimum": 0 },
+    "truncated":         { "type": "boolean" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_type","file","language","relevance","snippet","reason"],
+        "properties": {
+          "source_type":  { "type": "string" },
+          "file":         { "type": "string" },
+          "line":         { "type": ["integer","null"], "minimum": 1 },
+          "symbol_name":  { "type": ["string","null"] },
+          "language":     { "type": "string" },
+          "relevance":    { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+          "snippet":      { "type": "string" },
+          "reason":       { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}"##;
+
+const SCHEMA_TRACE: &str = r##"{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs trace output",
+  "type": "object",
+  "required": ["tool","version","command","query","source","count","elapsed_secs","results"],
+  "properties": {
+    "tool":          { "type": "string", "const": "codescope" },
+    "version":       { "type": "string" },
+    "command":       { "type": "string", "const": "trace" },
+    "query":         { "type": "string" },
+    "source":        { "type": "string", "enum": ["filesystem","stdin","web"] },
+    "count":         { "type": "integer", "minimum": 0 },
+    "elapsed_secs":  { "type": "number" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step","name","kind","file","line","signature","depth"],
+        "properties": {
+          "step":       { "type": "integer", "minimum": 1 },
+          "name":       { "type": "string" },
+          "kind":       { "type": "string" },
+          "file":       { "type": "string" },
+          "line":       { "type": "integer", "minimum": 1 },
+          "signature":  { "type": "string" },
+          "depth":      { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}"##;
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -716,6 +1057,8 @@ mod tests {
             "file", "content", "content-replace", "content-count",
             "web", "where", "stats", "recent", "across",
             "open", "explain", "history",
+            "symbol", "refs", "callers", "symbols",
+            "context", "pack", "trace",
         ];
         for cmd in &commands {
             let schema = get_schema(cmd).expect(&format!("schema for {} missing", cmd));

@@ -108,6 +108,49 @@ pub fn run_stats(path: &str, file_type: Option<crate::types::FileType>, extensio
     Ok(())
 }
 
+/// Collect stats for MCP/HTTP API.
+pub fn collect_stats(
+    path: &str,
+    file_type: Option<crate::types::FileType>,
+    extension: Option<&str>,
+) -> Result<Vec<serde_json::Value>, String> {
+    let extensions: Option<Vec<&str>> = match (file_type, extension) {
+        (Some(ft), _) => Some(ft.extensions().to_vec()),
+        (_, Some(ext)) => Some(vec![ext]),
+        _ => None,
+    };
+    let mut lang_stats: HashMap<String, (usize, usize, usize)> = HashMap::new();
+    let mut builder = ignore::WalkBuilder::new(path);
+    builder.git_ignore(true);
+    builder.git_global(true);
+    for entry in builder.build() {
+        let entry = match entry { Ok(e) => e, Err(_) => continue };
+        if !entry.file_type().map_or(false, |ft| ft.is_file()) { continue; }
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        if let Some(exts) = &extensions {
+            let matches = exts.iter().any(|ext| file_name.ends_with(&format!(".{}", ext)));
+            if !matches { continue; }
+        }
+        let file_path = entry.path();
+        let lang = detect_language(&file_name);
+        if let Ok(meta) = entry.metadata() {
+            let size = meta.len() as usize;
+            let lines = if let Ok(content) = fs::read_to_string(file_path) { content.lines().count() } else { 0 };
+            let entry = lang_stats.entry(lang).or_insert((0, 0, 0));
+            entry.0 += 1;
+            entry.1 += lines;
+            entry.2 += size;
+        }
+    }
+    let total_lines: usize = lang_stats.values().map(|(_, l, _)| l).sum();
+    let mut results: Vec<serde_json::Value> = lang_stats.into_iter().map(|(language, (files, lines, bytes))| {
+        let percentage = if total_lines > 0 { (lines as f64 / total_lines as f64) * 100.0 } else { 0.0 };
+        serde_json::json!({ "language": language, "files": files, "lines": lines, "bytes": bytes, "percentage": percentage })
+    }).collect();
+    results.sort_by(|a, b| b["lines"].as_u64().unwrap_or(0).cmp(&a["lines"].as_u64().unwrap_or(0)));
+    Ok(results)
+}
+
 fn detect_language(filename: &str) -> String {
     let lower = filename.to_lowercase();
     if lower.ends_with(".rs") { return "Rust".to_string(); }

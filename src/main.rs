@@ -21,6 +21,9 @@ mod types;
 mod utils;
 mod validate;
 mod where_cmd;
+mod symbol;
+mod context;
+mod serve;
 
 #[cfg(feature = "interactive")]
 mod interactive;
@@ -370,6 +373,83 @@ fn main() {
             print_branded_banner();
             print_config_info(&cfg);
             0
+        }
+
+        Commands::Symbol {
+            name, path, exclude, file_type, extension,
+            symbol_type, no_ignore, depth, json,
+        } => {
+            match symbol::run_symbol(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), symbol_type.as_deref(), no_ignore, depth, json) {
+                Ok(code) => code,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        Commands::Refs {
+            name, path, exclude, file_type, extension,
+            no_ignore, depth, json,
+        } => {
+            match symbol::run_refs(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, json) {
+                Ok(code) => code,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        Commands::Callers {
+            name, path, exclude, file_type, extension,
+            no_ignore, depth, json,
+        } => {
+            match symbol::run_callers(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, json) {
+                Ok(code) => code,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        Commands::Symbols {
+            path, exclude, file_type, extension,
+            symbol_type, no_ignore, depth, limit, json,
+        } => {
+            match symbol::run_symbols(&path, exclude.as_deref(), file_type, extension.as_deref(), symbol_type.as_deref(), no_ignore, depth, limit, json) {
+                Ok(code) => code,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        Commands::Context {
+            topic, path, exclude, file_type, extension,
+            no_ignore, depth, max_items, json,
+        } => {
+            match context::run_context(&topic, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, max_items, json) {
+                Ok(code) => code,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        Commands::Pack {
+            description, path, exclude, file_type, extension,
+            no_ignore, depth, budget, json,
+        } => {
+            match context::run_pack(&description, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, budget, json) {
+                Ok(code) => code,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        Commands::Trace {
+            name, path, exclude, file_type, extension,
+            no_ignore, depth, max_depth, json,
+        } => {
+            match context::run_trace(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, max_depth, json) {
+                Ok(code) => code,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        Commands::Serve { mcp, http, port, path } => {
+            match serve::run_serve(mcp, http, port, &path) {
+                Ok(()) => 0,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
         }
 
         Commands::Schema { command } => {
