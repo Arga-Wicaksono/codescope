@@ -753,19 +753,13 @@ fn parse_path_and_query(request_path: &str) -> (String, HashMap<String, String>)
 
 fn http_response(status: u16, reason: &str, body: Option<&str>) -> String {
     let body_str = body.unwrap_or("");
-    let response = format!(
-        "HTTP/1.1 {} {}\r\n\
-         Content-Type: application/json\r\n\
-         Access-Control-Allow-Origin: *\r\n\
-         Content-Length: {}\r\n\
-         \r\n\
-         {}",
+    format!(
+        "HTTP/1.1 {} {}\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\n\r\n{}",
         status,
         reason,
         body_str.len(),
         body_str,
-    );
-    response
+    )
 }
 
 fn json_error(message: &str) -> String {
@@ -801,36 +795,30 @@ fn run_http_server(port: u16, working_dir: String) {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => {
+            Ok(mut stream) => {
                 let wd = working_dir.clone();
                 thread::spawn(move || {
-                    use std::io::{BufRead, BufReader, Read, Write};
-                    let mut reader = BufReader::new(&stream);
-                    let mut writer = &stream;
+                    use std::io::Read;
+                    stream.set_nonblocking(false).ok();
+                    stream.set_read_timeout(Some(std::time::Duration::from_secs(5))).ok();
+                    stream.set_write_timeout(Some(std::time::Duration::from_secs(5))).ok();
 
-                    // Read request line
-                    let mut request_line = String::new();
-                    if reader.read_line(&mut request_line).is_err() {
-                        return;
-                    }
+                    // Read the entire request (up to 16KB) then parse
+                    let mut buf = [0u8; 16384];
+                    let n = match stream.read(&mut buf) {
+                        Ok(0) => return,
+                        Ok(n) => n,
+                        Err(_) => return,
+                    };
 
-                    // Read headers
-                    let mut headers = Vec::new();
-                    loop {
-                        let mut header = String::new();
-                        if reader.read_line(&mut header).is_err() || header == "\r\n" || header == "\n" {
-                            break;
-                        }
-                        headers.push(header.trim().to_string());
-                    }
+                    let raw = String::from_utf8_lossy(&buf[..n]);
+                    let mut lines = raw.lines();
+                    let request_line = lines.next().unwrap_or("").to_string();
+                    let headers: Vec<String> = lines.take_while(|l| !l.is_empty()).map(|l| l.trim().to_string()).collect();
 
-                    // Drain any remaining body
-                    let mut body = Vec::new();
-                    let _ = reader.read_to_end(&mut body);
-
-                    let response = handle_http_request(&request_line.trim(), &headers, &wd);
-                    let _ = writer.write_all(response.as_bytes());
-                    let _ = writer.flush();
+                    let response = handle_http_request(&request_line, &headers, &wd);
+                    let _ = stream.write_all(response.as_bytes());
+                    let _ = stream.flush();
                 });
             }
             Err(e) => {

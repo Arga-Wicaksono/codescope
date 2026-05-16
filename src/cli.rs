@@ -609,7 +609,7 @@ pub enum Commands {
         port: u16,
 
         /// Working directory (default: current directory)
-        #[arg(short, long, default_value = ".")]
+        #[arg(long, default_value = ".")]
         path: String,
     },
 
