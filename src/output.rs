@@ -42,7 +42,11 @@ pub fn print_file_results_json(results: &[(String, String, i64)], query: &str, e
             })
         }).collect::<Vec<_>>()
     });
-    println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+    if let Ok(json) = serde_json::to_string_pretty(&json_output) {
+        println!("{}", json);
+    } else {
+        eprintln!("{} Failed to serialize file results", "Error:".red().bold());
+    }
 }
 
 /// Print content search results to stdout.
@@ -92,7 +96,11 @@ pub fn print_content_results_json(results: &[(String, String, usize, String, i64
             })
         }).collect::<Vec<_>>()
     });
-    println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+    if let Ok(json) = serde_json::to_string_pretty(&json_output) {
+        println!("{}", json);
+    } else {
+        eprintln!("{} Failed to serialize content results", "Error:".red().bold());
+    }
 }
 
 /// Print content count results.
@@ -136,7 +144,11 @@ pub fn print_web_results_json(results: &[(String, String, String)], query: &str,
             })
         }).collect::<Vec<_>>()
     });
-    println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+    if let Ok(json) = serde_json::to_string_pretty(&json_output) {
+        println!("{}", json);
+    } else {
+        eprintln!("{} Failed to serialize web results", "Error:".red().bold());
+    }
 }
 
 /// Print content replace results (dry run).

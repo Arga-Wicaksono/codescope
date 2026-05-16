@@ -40,6 +40,19 @@ struct JsonRpcResponse {
     error: Option<JsonRpcError>,
 }
 
+/// Large result threshold in bytes for streaming progress notifications.
+const STREAMING_THRESHOLD: usize = 10_240;
+
+/// Emit a progress notification to stderr for large results.
+fn emit_streaming_progress(tool_name: &str, result_size: usize) {
+    eprintln!(
+        "{} Streaming: tool '{}' produced {} bytes, sending result...",
+        ">>".cyan(),
+        tool_name.yellow(),
+        result_size
+    );
+}
+
 #[derive(Debug, Serialize)]
 struct JsonRpcError {
     code: i32,
@@ -67,12 +80,19 @@ struct McpServerInfo {
 #[derive(Debug, Serialize)]
 struct McpCapabilities {
     tools: McpToolsCapability,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    streaming: Option<McpStreamingCapability>,
 }
 
 #[derive(Debug, Serialize)]
 struct McpToolsCapability {
     #[serde(skip_serializing_if = "Option::is_none")]
     list_changed: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+struct McpStreamingCapability {
+    supported: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -170,7 +190,7 @@ fn get_mcp_tools() -> Vec<McpTool> {
                     "topic": { "type": "string", "description": "Topic to extract context for" },
                     "path": { "type": "string", "description": "Directory (default: .)" },
                     "extension": { "type": "string", "description": "Filter by file extension" },
-                    "max_items": { "type": "integer", "description": "Maximum context items (default: 20)" }
+                    "limit": { "type": "integer", "description": "Maximum context items (default: 20)" }
                 },
                 "required": ["topic"]
             }),
@@ -196,7 +216,7 @@ fn get_mcp_tools() -> Vec<McpTool> {
                 "properties": {
                     "name": { "type": "string", "description": "Function name to trace" },
                     "path": { "type": "string", "description": "Directory (default: .)" },
-                    "max_depth": { "type": "integer", "description": "Max trace depth (default: 5)" }
+                    "depth": { "type": "integer", "description": "Trace depth (default: 5)" }
                 },
                 "required": ["name"]
             }),
@@ -363,9 +383,9 @@ fn execute_tool(name: &str, params: &serde_json::Value) -> Result<serde_json::Va
             let topic = params["topic"].as_str().ok_or("missing 'topic'")?;
             let path = params["path"].as_str().unwrap_or(".");
             let extension = params["extension"].as_str();
-            let max_items = params["max_items"].as_u64().map(|l| l as usize);
+            let limit = params["limit"].as_u64().map(|l| l as usize);
 
-            let items = crate::context::collect_context_items(topic, path, None, extension, true, None, max_items.unwrap_or(20))?;
+            let items = crate::context::collect_context_items(topic, path, None, extension, true, None, limit.unwrap_or(20))?;
             let json_results: Vec<serde_json::Value> = items
                 .iter()
                 .map(|item| serde_json::json!({
@@ -395,9 +415,9 @@ fn execute_tool(name: &str, params: &serde_json::Value) -> Result<serde_json::Va
         "trace_symbol" => {
             let name = params["name"].as_str().ok_or("missing 'name'")?;
             let path = params["path"].as_str().unwrap_or(".");
-            let max_depth = params["max_depth"].as_u64().map(|l| l as usize);
+            let depth = params["depth"].as_u64().map(|l| l as usize);
 
-            let trace = crate::context::collect_trace_steps(name, path, None, None, true, None, max_depth)?;
+            let trace = crate::context::collect_trace_steps(name, path, None, None, true, None, depth)?;
             let json_results: Vec<serde_json::Value> = trace
                 .iter()
                 .map(|step| serde_json::json!({
@@ -465,14 +485,22 @@ fn run_mcp_server() {
                         data: None,
                     }),
                 };
-                let _ = writeln!(stdout, "{}", serde_json::to_string(&response).unwrap());
+                let json_str = match serde_json::to_string(&response) {
+                    Ok(s) => s,
+                    Err(e) => format!("{{\"error\":\"serialization failed: {}\"}}", e),
+                };
+                let _ = writeln!(stdout, "{}", json_str);
                 let _ = stdout.flush();
                 continue;
             }
         };
 
         let response = handle_mcp_request(&request);
-        let _ = writeln!(stdout, "{}", serde_json::to_string(&response).unwrap());
+        let json_str = match serde_json::to_string(&response) {
+            Ok(s) => s,
+            Err(e) => format!("{{\"error\":\"serialization failed: {}\"}}", e),
+        };
+        let _ = writeln!(stdout, "{}", json_str);
         let _ = stdout.flush();
     }
 }
@@ -485,7 +513,8 @@ fn handle_mcp_request(request: &JsonRpcRequest) -> JsonRpcResponse {
             let result = serde_json::json!({
                 "protocolVersion": "2024-11-05",
                 "capabilities": {
-                    "tools": {}
+                    "tools": {},
+                    "streaming": { "supported": true }
                 },
                 "serverInfo": {
                     "name": "codescope",
@@ -556,7 +585,17 @@ fn handle_mcp_request(request: &JsonRpcRequest) -> JsonRpcResponse {
 
             let arguments = params.get("arguments").cloned().unwrap_or(serde_json::json!({}));
 
-            match execute_tool(tool_name, &arguments) {
+            let tool_result = execute_tool(tool_name, &arguments);
+
+            // Check for large results and emit streaming progress
+            if let Ok(ref res) = tool_result {
+                let res_str = serde_json::to_string(res).unwrap_or_default();
+                if res_str.len() > STREAMING_THRESHOLD {
+                    emit_streaming_progress(tool_name, res_str.len());
+                }
+            }
+
+            match tool_result {
                 Ok(result) => JsonRpcResponse {
                     jsonrpc: "2.0".to_string(),
                     id,
@@ -593,6 +632,60 @@ fn handle_mcp_request(request: &JsonRpcRequest) -> JsonRpcResponse {
 // HTTP API Server
 // ---------------------------------------------------------------------------
 
+/// Check if the request has `stream=true` query parameter.
+fn is_streaming_request(query: &HashMap<String, String>) -> bool {
+    query.get("stream").map(|v| v == "true" || v == "1").unwrap_or(false)
+}
+
+/// Build a streaming HTTP response (chunked transfer encoding).
+/// Returns (response_header, body_chunks) where each chunk is a line of data.
+fn build_streaming_response(status: u16, reason: &str, tool_result: &serde_json::Value) -> String {
+    let result_str = serde_json::to_string_pretty(tool_result).unwrap_or_default();
+
+    // Split large results into chunks of ~4KB
+    let chunk_size = 4096;
+    let mut chunks = Vec::new();
+    if result_str.len() > chunk_size {
+        let bytes = result_str.as_bytes();
+        let mut offset = 0;
+        while offset < bytes.len() {
+            let end = std::cmp::min(offset + chunk_size, bytes.len());
+            // Try to break at a newline
+            let mut break_at = end;
+            if end < bytes.len() {
+                for i in (offset..end).rev() {
+                    if bytes[i] == b'\n' {
+                        break_at = i + 1;
+                        break;
+                    }
+                }
+            }
+            let chunk_str = String::from_utf8_lossy(&bytes[offset..break_at]).to_string();
+            let partial = offset + chunk_str.len() < bytes.len();
+            chunks.push(serde_json::json!({
+                "partial": partial,
+                "data": chunk_str.trim_end(),
+            }));
+            offset += chunk_str.len();
+        }
+    } else {
+        chunks.push(serde_json::json!({
+            "partial": false,
+            "data": result_str,
+        }));
+    }
+
+    let body: String = chunks.iter()
+        .map(|c| serde_json::to_string(c).unwrap_or_default())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    format!(
+        "HTTP/1.1 {} {}\r\nContent-Type: application/x-ndjson\r\nTransfer-Encoding: chunked\r\nAccess-Control-Allow-Origin: *\r\n\r\n{}\r\n0\r\n\r\n",
+        status, reason, body
+    )
+}
+
 fn handle_http_request(request_line: &str, _headers: &[String], working_dir: &str) -> String {
     let parts: Vec<&str> = request_line.split_whitespace().collect();
     if parts.len() < 2 {
@@ -609,6 +702,7 @@ fn handle_http_request(request_line: &str, _headers: &[String], working_dir: &st
 
     // Parse query parameters
     let (endpoint, query) = parse_path_and_query(path);
+    let streaming = is_streaming_request(&query);
 
     let response = match endpoint.as_str() {
         "/search" => {
@@ -628,7 +722,10 @@ fn handle_http_request(request_line: &str, _headers: &[String], working_dir: &st
                 "extension": ext,
                 "limit": limit,
             })) {
-                Ok(result) => http_response(200, "OK", Some(&result.to_string())),
+                Ok(result) => {
+                    if streaming { build_streaming_response(200, "OK", &result) }
+                    else { http_response(200, "OK", Some(&result.to_string())) }
+                }
                 Err(e) => http_response(500, "Internal Server Error", Some(&json_error(&e))),
             }
         }
@@ -647,7 +744,10 @@ fn handle_http_request(request_line: &str, _headers: &[String], working_dir: &st
                 "path": search_path,
                 "budget": budget,
             })) {
-                Ok(result) => http_response(200, "OK", Some(&result.to_string())),
+                Ok(result) => {
+                    if streaming { build_streaming_response(200, "OK", &result) }
+                    else { http_response(200, "OK", Some(&result.to_string())) }
+                }
                 Err(e) => http_response(500, "Internal Server Error", Some(&json_error(&e))),
             }
         }
@@ -664,7 +764,10 @@ fn handle_http_request(request_line: &str, _headers: &[String], working_dir: &st
                 "name": name,
                 "path": search_path,
             })) {
-                Ok(result) => http_response(200, "OK", Some(&result.to_string())),
+                Ok(result) => {
+                    if streaming { build_streaming_response(200, "OK", &result) }
+                    else { http_response(200, "OK", Some(&result.to_string())) }
+                }
                 Err(e) => http_response(500, "Internal Server Error", Some(&json_error(&e))),
             }
         }
@@ -676,14 +779,17 @@ fn handle_http_request(request_line: &str, _headers: &[String], working_dir: &st
                 None => return http_response(400, "Bad Request", Some(&json_error("Missing 'symbol' parameter"))),
             };
             let search_path = query.get("path").map(|v| v.as_str()).unwrap_or(working_dir);
-            let max_depth = query.get("depth").and_then(|v| v.parse::<usize>().ok());
+            let depth = query.get("depth").and_then(|v| v.parse::<usize>().ok());
 
             match execute_tool("trace_symbol", &serde_json::json!({
                 "name": symbol,
                 "path": search_path,
-                "max_depth": max_depth,
+                "depth": depth,
             })) {
-                Ok(result) => http_response(200, "OK", Some(&result.to_string())),
+                Ok(result) => {
+                    if streaming { build_streaming_response(200, "OK", &result) }
+                    else { http_response(200, "OK", Some(&result.to_string())) }
+                }
                 Err(e) => http_response(500, "Internal Server Error", Some(&json_error(&e))),
             }
         }
@@ -702,7 +808,10 @@ fn handle_http_request(request_line: &str, _headers: &[String], working_dir: &st
                 "path": search_path,
                 "budget": budget,
             })) {
-                Ok(result) => http_response(200, "OK", Some(&result.to_string())),
+                Ok(result) => {
+                    if streaming { build_streaming_response(200, "OK", &result) }
+                    else { http_response(200, "OK", Some(&result.to_string())) }
+                }
                 Err(e) => http_response(500, "Internal Server Error", Some(&json_error(&e))),
             }
         }
@@ -713,7 +822,10 @@ fn handle_http_request(request_line: &str, _headers: &[String], working_dir: &st
             match execute_tool("repo_stats", &serde_json::json!({
                 "path": search_path,
             })) {
-                Ok(result) => http_response(200, "OK", Some(&result.to_string())),
+                Ok(result) => {
+                    if streaming { build_streaming_response(200, "OK", &result) }
+                    else { http_response(200, "OK", Some(&result.to_string())) }
+                }
                 Err(e) => http_response(500, "Internal Server Error", Some(&json_error(&e))),
             }
         }
@@ -723,6 +835,7 @@ fn handle_http_request(request_line: &str, _headers: &[String], working_dir: &st
                 "tool": "codescope",
                 "version": env!("CARGO_PKG_VERSION"),
                 "status": "ok",
+                "streaming": true,
                 "endpoints": ["/search", "/context", "/symbol", "/trace", "/pack", "/stats", "/health"]
             }).to_string()))
         }
@@ -946,5 +1059,58 @@ mod tests {
         let response = handle_mcp_request(&request);
         assert!(response.error.is_some());
         assert_eq!(response.error.unwrap().code, -32601);
+    }
+
+    #[test]
+    fn test_mcp_initialize_includes_streaming_capability() {
+        let request = JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: Some(serde_json::json!(42)),
+            method: "initialize".to_string(),
+            params: None,
+        };
+        let response = handle_mcp_request(&request);
+        let result = response.result.unwrap();
+        assert_eq!(result["capabilities"]["streaming"]["supported"], true);
+    }
+
+    #[test]
+    fn test_is_streaming_request() {
+        let mut q = HashMap::new();
+        assert!(!is_streaming_request(&q));
+        q.insert("stream".to_string(), "true".to_string());
+        assert!(is_streaming_request(&q));
+        q.insert("stream".to_string(), "1".to_string());
+        assert!(is_streaming_request(&q));
+        q.insert("stream".to_string(), "false".to_string());
+        assert!(!is_streaming_request(&q));
+    }
+
+    #[test]
+    fn test_build_streaming_response_small() {
+        let data = serde_json::json!({"results": [], "count": 0});
+        let response = build_streaming_response(200, "OK", &data);
+        assert!(response.contains("Transfer-Encoding: chunked"));
+        assert!(response.contains("application/x-ndjson"));
+        assert!(response.contains("\"partial\":false"));
+    }
+
+    #[test]
+    fn test_build_streaming_response_large() {
+        // Build a large result > 4KB to trigger chunking
+        let big_array: Vec<String> = (0..500).map(|i| format!("line {}: padding to make this result very long so it exceeds the chunk size", i)).collect();
+        let data = serde_json::json!({"results": big_array, "count": 500});
+        let response = build_streaming_response(200, "OK", &data);
+        assert!(response.contains("Transfer-Encoding: chunked"));
+        // Should have multiple partial chunks
+        let partial_count = response.matches("\"partial\":true").count();
+        assert!(partial_count > 0, "Expected at least one partial chunk for large response");
+        // Last chunk should be partial:false
+        assert!(response.contains("\"partial\":false"));
+    }
+
+    #[test]
+    fn test_streaming_threshold_constant() {
+        assert_eq!(STREAMING_THRESHOLD, 10_240);
     }
 }

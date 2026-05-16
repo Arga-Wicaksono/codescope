@@ -287,7 +287,7 @@ mod tests {
         fs::write(dir.path().join("test.c"), "int parse_config() {}\n").unwrap();
         fs::write(dir.path().join("test.cpp"), "void parse_config() {}\n").unwrap();
 
-        let result = run_where("parse_config", dir.path().to_str().unwrap(), None, Some("rs"), None, true, None, false, false, false);
+        let result = run_where("parse_config", dir.path().to_str().unwrap(), None, None, Some("rs"), true, None, false, false, false);
         assert!(result.is_ok());
         // Should find exactly 1 result in .rs file, NOT results from .c or .cpp
     }

@@ -8,6 +8,7 @@ use ignore::WalkBuilder;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
+use crate::embeddings;
 use crate::utils::Timer;
 use crate::validate;
 
@@ -135,6 +136,7 @@ pub fn run_semantic(
     depth: Option<usize>,
     limit: Option<usize>,
     json: bool,
+    vector: bool,
 ) -> Result<i32, String> {
     validate::validate_pattern(query)?;
     validate::validate_path(path)?;
@@ -221,6 +223,13 @@ pub fn run_semantic(
             });
         }
     }
+
+    // ── Vector search path ──
+    if vector {
+        return run_vector_semantic(query, &documents, effective_limit, json, timer);
+    }
+
+    // ── TF-IDF search path (original) ──
 
     // 3. Tokenize all documents
     let doc_tokens: Vec<Vec<String>> = documents
@@ -430,6 +439,136 @@ pub fn run_semantic(
 }
 
 // ---------------------------------------------------------------------------
+// Vector-based semantic search
+// ---------------------------------------------------------------------------
+
+/// Run semantic search using vector embeddings (cosine similarity).
+fn run_vector_semantic(
+    query: &str,
+    documents: &[Document],
+    limit: usize,
+    json: bool,
+    timer: Timer,
+) -> Result<i32, String> {
+    // Build texts: query + one text per document (first 2000 chars)
+    let doc_snippets: Vec<&str> = documents.iter().map(|d| {
+        if d.all_text.len() > 2000 {
+            &d.all_text[..2000]
+        } else {
+            &d.all_text
+        }
+    }).collect();
+
+    let all_texts: Vec<&str> = std::iter::once(query)
+        .chain(doc_snippets.iter().copied())
+        .collect();
+
+    // Generate embeddings for all texts
+    let result = embeddings::embed_texts(&all_texts);
+    let query_embedding = &result.embeddings[0];
+
+    // Score each document by cosine similarity
+    let mut scored: Vec<(usize, f64)> = documents
+        .iter()
+        .enumerate()
+        .map(|(i, _)| {
+            let sim = query_embedding.cosine_similarity(&result.embeddings[i + 1]);
+            (i, sim)
+        })
+        .collect();
+
+    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    scored.truncate(limit);
+
+    let elapsed = timer.elapsed_secs();
+    let model_used = &result.model_used;
+
+    // Build results
+    let results: Vec<SemanticResult> = scored
+        .iter()
+        .map(|&(idx, score)| {
+            let doc = &documents[idx];
+            let (line, content) = doc.lines.first()
+                .map(|(n, t)| (*n, t.clone()))
+                .unwrap_or((1, String::new()));
+            SemanticResult {
+                path: doc.path.clone(),
+                line,
+                content,
+                score,
+            }
+        })
+        .collect();
+
+    // Output
+    if json {
+        let out = serde_json::json!({
+            "tool": "codescope",
+            "command": "semantic",
+            "query": query,
+            "model": model_used,
+            "count": results.len(),
+            "elapsed_secs": elapsed,
+            "results": results.iter().map(|r| {
+                serde_json::json!({
+                    "path": r.path,
+                    "line": r.line,
+                    "content": r.content,
+                    "score": r.score,
+                })
+            }).collect::<Vec<_>>()
+        });
+        println!("{}", serde_json::to_string_pretty(&out).unwrap());
+    } else {
+        let separator = "─".repeat(50);
+        eprintln!(
+            "{} Semantic vector search: '{}' (model: {})",
+            ">>".cyan(),
+            query.cyan(),
+            model_used
+        );
+        eprintln!("{}", separator.dimmed());
+
+        if results.is_empty() {
+            eprintln!("{}", "No semantically similar results found.".yellow());
+        } else {
+            for (i, r) in results.iter().enumerate() {
+                let score_pct = (r.score * 100.0).round() as usize;
+                let score_color = if score_pct >= 50 {
+                    "green"
+                } else if score_pct >= 20 {
+                    "yellow"
+                } else {
+                    "dimmed"
+                };
+                let score_str = format!("{:.4}", r.score);
+                eprintln!(
+                    "  {} {} {}:{}",
+                    format!("{:3}", i + 1).dimmed(),
+                    match score_color {
+                        "green" => score_str.green().bold(),
+                        "yellow" => score_str.yellow(),
+                        _ => score_str.dimmed(),
+                    },
+                    r.path.cyan(),
+                    r.line.to_string().dimmed(),
+                );
+                eprintln!("      {}", r.content);
+            }
+            eprintln!("{}", separator.dimmed());
+            eprintln!(
+                "{} Found {} result(s) in {:.3}s",
+                "✓".green(),
+                results.len().to_string().green(),
+                elapsed
+            );
+        }
+    }
+
+    Ok(if results.is_empty() { 1 } else { 0 })
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -471,6 +610,7 @@ mod tests {
             None,
             Some(5),
             false,
+            false,
         );
         assert!(result.is_ok());
         // Should find at least one result since "database.rs" has database/pool terms
@@ -488,6 +628,7 @@ mod tests {
             true,
             None,
             Some(5),
+            false,
             false,
         );
         assert!(result.is_ok());
@@ -507,6 +648,7 @@ mod tests {
             None,
             Some(5),
             true,
+            false,
         );
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 0);

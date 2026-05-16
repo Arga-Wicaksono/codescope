@@ -23,15 +23,20 @@ colored = "2"
 is-terminal = "0.4"
 rayon = "1"
 dirs = "5"
+termion = "4"
 dialoguer = { version = "0.11", features = ["fuzzy-select"], optional = true }
 reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false, optional = true }
 scraper = { version = "0.22", optional = true }
 clap_complete = "4"
+candle-core = { version = "0.7", optional = true }
+candle-nn = { version = "0.7", optional = true }
+tokenizers = { version = "0.20", optional = true }
 
 [features]
 default = ["web-search", "interactive"]
 web-search = ["reqwest", "scraper"]
 interactive = ["dialoguer"]
+embeddings = ["candle-core", "candle-nn", "tokenizers"]
 
 [dev-dependencies]
 tempfile = "3"

@@ -43,6 +43,10 @@ pub mod semantic;
 pub mod cache;
 pub mod rewrite;
 pub mod lsp_bridge;
+pub mod output_schema;
+pub mod embeddings;
+pub mod tui_preview;
+pub mod plugin_wasm;
 
 #[cfg(feature = "interactive")]
 pub mod interactive;

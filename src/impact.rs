@@ -21,7 +21,7 @@ use crate::graph;
 /// - `json`: if true, emit structured JSON
 pub fn run_impact(target: &str, path: &str, json: bool) -> Result<i32, String> {
     // Build the full module-dependency graph (same as `graph modules`)
-    let edges = graph::build_graph_from_dir(path, "modules")?;
+    let edges = graph::build_module_graph(path, None)?.edges;
 
     if edges.is_empty() {
         if json {

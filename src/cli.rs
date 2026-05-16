@@ -526,7 +526,7 @@ pub enum Commands {
 
         /// Maximum context items (default: 20)
         #[arg(short = 'l', long)]
-        max_items: Option<usize>,
+        limit: Option<usize>,
 
         #[arg(short = 'j', long)]
         json: bool,
@@ -583,12 +583,9 @@ pub enum Commands {
         #[arg(long)]
         no_ignore: bool,
 
-        #[arg(long)]
-        depth: Option<usize>,
-
-        /// Maximum trace depth (default: 5)
+        /// Trace depth (default: 5)
         #[arg(short = 'd', long)]
-        max_depth: Option<usize>,
+        depth: Option<usize>,
 
         #[arg(short = 'j', long)]
         json: bool,
@@ -681,12 +678,16 @@ pub enum Commands {
         /// Output as JSON
         #[arg(short = 'j', long)]
         json: bool,
+
+        /// Use vector embeddings for semantic search (cosine similarity)
+        #[arg(long)]
+        vector: bool,
     },
 
     /// Manage the query result cache
     Cache {
         /// Subcommand: stats, clear, cleanup
-        #[arg(subcommand)]
+        #[command(subcommand)]
         action: CacheAction,
     },
 

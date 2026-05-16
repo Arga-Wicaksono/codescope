@@ -989,10 +989,10 @@ fn emit_impact_json(
 /// `cs graph` — build and display the dependency graph for a project.
 pub fn run_graph(
     path: &str,
+    graph_type: &str,
     depth: Option<usize>,
     format: &str,
     json: bool,
-    graph_type: &str,
 ) -> Result<i32, String> {
     let timer = Timer::new();
     eprintln!("{} {} (type: {})", ">> Dependency Graph:".cyan(), path, graph_type);
@@ -1457,7 +1457,7 @@ const fs = require('fs');
     #[test]
     fn test_run_graph_returns_ok() {
         let dir = create_rust_project();
-        let result = run_graph(dir.path().to_str().unwrap(), None, "tree", false, "modules");
+        let result = run_graph(dir.path().to_str().unwrap(), "modules", None, "tree", false);
         assert!(result.is_ok());
     }
 

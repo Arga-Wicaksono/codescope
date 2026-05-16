@@ -477,7 +477,10 @@ fn trace_step(
     let end_line = std::cmp::min(start_line + 200, lines.len());
 
     // Find called function names
-    let call_pattern = Regex::new(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(").unwrap();
+    let call_pattern = match Regex::new(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(") {
+        Ok(re) => re,
+        Err(_) => return,
+    };
 
     for line in &lines[start_line..end_line] {
         for cap in call_pattern.captures_iter(line) {
@@ -663,7 +666,7 @@ pub fn run_context(
     extension: Option<&str>,
     no_ignore: bool,
     depth: Option<usize>,
-    max_items: Option<usize>,
+    limit: Option<usize>,
     json: bool,
 ) -> Result<i32, String> {
     validate::validate_pattern(topic)?;
@@ -675,8 +678,8 @@ pub fn run_context(
         _ => None,
     };
 
-    let effective_max_items = max_items.unwrap_or(20);
-    let items = extract_context(topic, path, extensions.as_deref(), no_ignore, depth, effective_max_items)?;
+    let effective_limit = limit.unwrap_or(20);
+    let items = extract_context(topic, path, extensions.as_deref(), no_ignore, depth, effective_limit)?;
 
     if json {
         let elapsed = timer.elapsed_secs();

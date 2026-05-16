@@ -1,5 +1,7 @@
 //! Input validation for codescope with helpful error messages.
 
+use colored::Colorize;
+
 /// Available command names for suggestion matching.
 const COMMAND_NAMES: &[&str] = &[
     "file", "content", "web", "open", "recent", "where", "explain",
@@ -54,7 +56,7 @@ pub fn validate_path(path: &str) -> Result<(), String> {
 pub fn suggest_command(input: &str) -> Option<String> {
     let input_lower = input.to_lowercase();
     let mut best_match: Option<String> = None;
-    let mut best_score = 0;
+    let mut best_score = 0.0_f64;
 
     for &cmd in COMMAND_NAMES {
         let score = levenshtein_similarity(&input_lower, cmd);
@@ -192,7 +194,7 @@ mod tests {
     #[test]
     fn test_levenshtein_similarity() {
         assert!((levenshtein_similarity("file", "file") - 1.0).abs() < 0.001);
-        assert!((levenshtein_similarity("file", "flie") - 0.75).abs() < 0.01);
+        assert!((levenshtein_similarity("file", "flie") - 0.5).abs() < 0.01);
         assert!(levenshtein_similarity("", "file") < 0.01);
         assert!(levenshtein_similarity("xyz", "abc") < 0.01);
     }

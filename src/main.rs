@@ -5,36 +5,18 @@ use std::process;
 use clap::Parser;
 use colored::Colorize;
 
-mod across;
-mod cache;
-mod cli;
-mod config;
-mod content_search;
-mod context;
-mod explain;
-mod file_search;
-mod graph;
-mod history;
-mod impact;
-mod lsp_bridge;
-mod open;
-mod output;
-mod recent;
-mod rewrite;
-mod semantic;
-mod serve;
-mod stats;
-mod symbol;
-mod types;
-mod utils;
-mod validate;
-mod where_cmd;
+use codescope::{
+    across, cache, cli, config, content_search, context, explain,
+    file_search, graph, history, impact, lsp_bridge, open, output,
+    output_schema, recent, rewrite, semantic, serve, stats, symbol,
+    types, utils, validate, where_cmd, embeddings, plugin_wasm,
+};
 
 #[cfg(feature = "interactive")]
-mod interactive;
+use codescope::interactive;
 
 #[cfg(feature = "web-search")]
-mod web_search;
+use codescope::web_search;
 
 use cli::{Cli, Commands, ShellName, CacheAction};
 
@@ -439,9 +421,9 @@ fn main() {
 
         Commands::Context {
             topic, path, exclude, file_type, extension,
-            no_ignore, depth, max_items, json,
+            no_ignore, depth, limit, json,
         } => {
-            handle_result(context::run_context(&topic, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, max_items, json))
+            handle_result(context::run_context(&topic, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, limit, json))
         }
 
         Commands::Pack {
@@ -453,9 +435,9 @@ fn main() {
 
         Commands::Trace {
             name, path, exclude, file_type, extension,
-            no_ignore, depth, max_depth, json,
+            no_ignore, depth, json,
         } => {
-            handle_result(context::run_trace(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, max_depth, json))
+            handle_result(context::run_trace(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, None, depth, json))
         }
 
         // ── Dependency Graph ──
@@ -473,7 +455,7 @@ fn main() {
         // ── Serve ──
 
         Commands::Serve { mcp, http, port, path } => {
-            match serve::run_serve(mcp, http, port, path) {
+            match serve::run_serve(mcp, http, port, &path) {
                 Ok(_) => 0,
                 Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
             }
@@ -483,9 +465,9 @@ fn main() {
 
         Commands::Semantic {
             query, path, file_type, extension,
-            no_ignore, depth, limit, json,
+            no_ignore, depth, limit, json, vector,
         } => {
-            handle_result(semantic::run_semantic(&query, &path, file_type, extension.as_deref(), no_ignore, depth, limit, json))
+            handle_result(semantic::run_semantic(&query, &path, file_type, extension.as_deref(), no_ignore, depth, limit, json, vector))
         }
 
         // ── Cache ──
@@ -495,7 +477,10 @@ fn main() {
             match action {
                 CacheAction::Stats => {
                     let s = mgr.stats();
-                    println!("{}", serde_json::to_string_pretty(&s).unwrap());
+                    match serde_json::to_string_pretty(&s) {
+                        Ok(json) => println!("{}", json),
+                        Err(e) => eprintln!("{} Failed to serialize cache stats: {}", "Error:".red().bold(), e),
+                    }
                     0
                 }
                 CacheAction::Clear => {
