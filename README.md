@@ -158,23 +158,50 @@ rg "TODO" | fzf
 
 ## Installation
 
+### One-liner install (macOS / Linux)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Arga-Wicaksono/codescope/main/scripts/install.sh | bash
+```
+
+Custom version or prefix:
+
+```bash
+# Install specific version
+curl -sSL ... | bash -s -- --version 1.3.0
+
+# Custom install prefix
+curl -sSL ... | bash -s -- --prefix ~/.local/bin
+```
+
+### Package managers
+
+| Platform | Command |
+|----------|---------|
+| **macOS (Homebrew)** | `brew tap Arga-Wicaksono/codescope && brew install codescope` |
+| **Windows (Scoop)** | `scoop bucket add codescope https://github.com/Arga-Wicaksono/codescope && scoop install codescope` |
+| **Arch Linux (AUR)** | `yay -S codescope` |
+| **Rust (cargo)** | `cargo install --git https://github.com/Arga-Wicaksono/codescope.git` |
+| **npm** | `npm install -g codescope` |
+
 ### Download prebuilt binary
 
 Download from [GitHub Releases](https://github.com/Arga-Wicaksono/codescope/releases/latest):
 
-| Platform | Binary |
-|----------|--------|
-| Linux x86_64 | `cs-x86_64-linux` |
-| macOS Intel | `cs-x86_64-macos` |
-| macOS Apple Silicon | `cs-aarch64-macos` |
-| Windows | `cs-x86_64-windows.exe` |
+| Platform | File |
+|----------|------|
+| Linux x86_64 (glibc) | `cs-x86_64-linux.tar.gz` |
+| Linux x86_64 (musl/static) | `cs-x86_64-linux-musl.tar.gz` |
+| Linux aarch64 (glibc) | `cs-aarch64-linux.tar.gz` |
+| Linux aarch64 (musl/static) | `cs-aarch64-linux-musl.tar.gz` |
+| macOS Intel | `cs-x86_64-macos.tar.gz` |
+| macOS Apple Silicon | `cs-aarch64-macos.tar.gz` |
+| Windows x86_64 | `cs-x86_64-windows.zip` |
 
 ```bash
-# Linux / macOS
-curl -sL https://github.com/Arga-Wicaksono/codescope/releases/latest/download/cs-x86_64-linux -o cs && chmod +x cs && sudo mv cs /usr/local/bin/
-
-# Or install from source
-cargo install --git https://github.com/Arga-Wicaksono/codescope.git
+# Download and install manually
+curl -sL https://github.com/Arga-Wicaksono/codescope/releases/latest/download/cs-x86_64-linux-musl.tar.gz | tar xz
+sudo mv cs /usr/local/bin/
 ```
 
 ### Build from source
@@ -196,6 +223,32 @@ cargo build --release --no-default-features --features interactive
 
 # Minimal: file + content only (smallest binary)
 cargo build --release --no-default-features
+```
+
+### Shell completions
+
+```bash
+# Bash
+cs completions bash | sudo tee /usr/share/bash-completion/completions/cs > /dev/null
+
+# Zsh
+cs completions zsh > ~/.zfunc/_cs
+
+# Fish
+cs completions fish > ~/.config/fish/completions/cs.fish
+
+# PowerShell
+cs completions powershell | Out-File -Encoding utf8 $PROFILE
+```
+
+### Uninstall
+
+```bash
+# Using the uninstall script
+curl -sSL https://raw.githubusercontent.com/Arga-Wicaksono/codescope/main/scripts/uninstall.sh | bash
+
+# Or manually
+rm $(which cs)
 ```
 
 ---

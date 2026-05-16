@@ -1,59 +1,198 @@
 name: Release
+
 on:
   push:
     tags: ['v*']
 
 env:
   CARGO_TERM_COLOR: always
+  BINARY_NAME: cs
 
 jobs:
   build-release:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact: cs
-            asset: cs-x86_64-linux
+            artifact_name: cs
+            asset_name: cs-x86_64-linux
+            archive: tar.gz
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            artifact_name: cs
+            asset_name: cs-x86_64-linux-musl
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            artifact_name: cs
+            asset_name: cs-aarch64-linux
+            archive: tar.gz
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            artifact_name: cs
+            asset_name: cs-aarch64-linux-musl
+            archive: tar.gz
           - target: x86_64-apple-darwin
             os: macos-latest
-            artifact: cs
-            asset: cs-x86_64-macos
+            artifact_name: cs
+            asset_name: cs-x86_64-macos
+            archive: tar.gz
           - target: aarch64-apple-darwin
             os: macos-latest
-            artifact: cs
-            asset: cs-aarch64-macos
+            artifact_name: cs
+            asset_name: cs-aarch64-macos
+            archive: tar.gz
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            artifact: cs.exe
-            asset: cs-x86_64-windows.exe
+            artifact_name: cs.exe
+            asset_name: cs-x86_64-windows
+            archive: zip
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install cross-compilation tools (aarch64-linux)
+        if: contains(matrix.target, 'aarch64-unknown-linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          # For musl targets
+          if echo "${{ matrix.target }}" | grep -q musl; then
+            sudo apt-get install -y musl-tools
+          fi
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
       - uses: Swatinem/rust-cache@v2
-      - name: Build
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
-      - name: Upload artifact
+
+      - name: Package (Unix)
+        if: matrix.archive == 'tar.gz'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../../${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
+          cd ../../../..
+          sha256sum ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
+
+      - name: Package (Windows)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "target/${{ matrix.target }}/release/${{ matrix.artifact_name }}" -DestinationPath "${{ matrix.asset_name }}.zip"
+          (Get-FileHash "${{ matrix.asset_name }}.zip" -Algorithm SHA256).Hash.ToLower() + "  ${{ matrix.asset_name }}.zip" > "${{ matrix.asset_name }}.zip.sha256"
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset }}
-          path: target/${{ matrix.target }}/release/${{ matrix.artifact }}
+          name: ${{ matrix.asset_name }}
+          path: |
+            ${{ matrix.asset_name }}.tar.gz
+            ${{ matrix.asset_name }}.tar.gz.sha256
+            ${{ matrix.asset_name }}.zip
+            ${{ matrix.asset_name }}.zip.sha256
+
+  generate-completions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --release
+      - name: Generate completions
+        run: |
+          mkdir -p completions
+          ./target/release/cs completions bash > completions/cs.bash
+          ./target/release/cs completions zsh > completions/cs.zsh
+          ./target/release/cs completions fish > completions/cs.fish
+          ./target/release/cs completions powershell > completions/cs.ps1
+      - name: Generate man pages
+        run: |
+          mkdir -p man
+          cargo build --release --features ""
+          ./target/release/cs --help 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: completions
+          path: completions
 
   github-release:
-    needs: build-release
+    needs: [build-release, generate-completions]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
-      - name: Create release
+          merge-multiple: true
+
+      - name: Collect release assets
+        run: |
+          mkdir -p release-assets
+          # Collect all archives and checksums
+          find artifacts -name '*.tar.gz' -exec cp {} release-assets/ \;
+          find artifacts -name '*.zip' -exec cp {} release-assets/ \;
+          find artifacts -name '*.sha256' -exec cp {} release-assets/ \;
+          # Collect completions
+          find artifacts -name 'cs.*' -exec cp {} release-assets/ \;
+          # List everything
+          ls -la release-assets/
+
+      - name: Generate checksums file
+        run: |
+          cd release-assets
+          sha256sum *.tar.gz *.zip > checksums.txt 2>/dev/null || true
+          cat checksums.txt
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: artifacts/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          files: release-assets/*
+          body: |
+            ## Installation
+
+            **Quick install (macOS / Linux):**
+            ```bash
+            curl -sSL https://raw.githubusercontent.com/Arga-Wicaksono/codescope/main/scripts/install.sh | bash
+            ```
+
+            **Or download directly:**
+
+            | Platform | File |
+            |----------|------|
+            | Linux x86_64 (glibc) | `cs-x86_64-linux.tar.gz` |
+            | Linux x86_64 (musl) | `cs-x86_64-linux-musl.tar.gz` |
+            | Linux aarch64 (glibc) | `cs-aarch64-linux.tar.gz` |
+            | Linux aarch64 (musl) | `cs-aarch64-linux-musl.tar.gz` |
+            | macOS Intel | `cs-x86_64-macos.tar.gz` |
+            | macOS Apple Silicon | `cs-aarch64-macos.tar.gz` |
+            | Windows x86_64 | `cs-x86_64-windows.zip` |
+
+            **From source:**
+            ```bash
+            cargo install --git https://github.com/Arga-Wicaksono/codescope.git
+            ```
+
+            **Homebrew (macOS):**
+            ```bash
+            brew tap arga-wicaksono/codescope
+            brew install codescope
+            ```
+
+            Verify checksums with `sha256sum -c checksums.txt`.
