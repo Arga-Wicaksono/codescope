@@ -37,10 +37,14 @@ pub mod symbol;
 pub mod context;
 pub mod graph;
 pub mod serve;
+pub mod plugin;
 pub mod cli;
 
 #[cfg(feature = "interactive")]
 pub mod interactive;
+
+#[cfg(feature = "tui")]
+pub mod tui;
 
 #[cfg(feature = "web-search")]
 pub mod web_search;

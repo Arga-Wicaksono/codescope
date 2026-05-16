@@ -1,0 +1,16 @@
+[package]
+name = "codescope-sdk"
+version = "1.2.0"
+edition = "2021"
+description = "Rust SDK for CodeScope — programmatic access to repository intelligence"
+authors = ["Arga Wicaksono"]
+license = "MIT"
+repository = "https://github.com/Arga-Wicaksono/codescope"
+keywords = ["sdk", "code-intelligence", "symbol-lookup", "repository"]
+categories = ["Development tools", "API bindings"]
+
+[dependencies]
+codescope = { version = "1.2.0", path = ".." }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"

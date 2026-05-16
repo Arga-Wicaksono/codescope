@@ -25,9 +25,13 @@ mod symbol;
 mod context;
 mod graph;
 mod serve;
+mod plugin;
 
 #[cfg(feature = "interactive")]
 mod interactive;
+
+#[cfg(feature = "tui")]
+mod tui;
 
 #[cfg(feature = "web-search")]
 mod web_search;
@@ -466,6 +470,21 @@ fn main() {
             match graph::run_impact(&path, &target, json) {
                 Ok(code) => code,
                 Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        Commands::Tui { path, file_type } => {
+            #[cfg(feature = "tui")]
+            {
+                match tui::run_tui(&path, file_type.as_deref()) {
+                    Ok(()) => 0,
+                    Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+                }
+            }
+            #[cfg(not(feature = "tui"))]
+            {
+                eprintln!("{} TUI mode requires the 'tui' feature", "Error:".red().bold());
+                2
             }
         }
 

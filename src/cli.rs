@@ -653,6 +653,17 @@ pub enum Commands {
         json: bool,
     },
 
+    /// Open interactive terminal UI (TUI) for browsing and searching code
+    Tui {
+        /// Directory to browse (default: current directory)
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        /// Filter by file type preset (rust, python, js, go, java, c, cpp)
+        #[arg(long)]
+        file_type: Option<String>,
+    },
+
     /// Print JSON output schema for a command (for AI integration and documentation)
     Schema {
         /// Command name to show schema for (file, content, web, where, stats, recent, across, open, explain, history)

@@ -1,6 +1,6 @@
 [package]
 name = "codescope"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2021"
 description = "Repository Intelligence Engine — fast code retrieval, symbol lookup, and AI-ready context extraction for developers and AI agents"
 authors = ["Arga Wicaksono"]
@@ -27,17 +27,30 @@ dialoguer = { version = "0.11", features = ["fuzzy-select"], optional = true }
 reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false, optional = true }
 scraper = { version = "0.22", optional = true }
 clap_complete = "4"
+ratatui = { version = "0.29", optional = true }
+crossterm = { version = "0.28", optional = true }
+textwrap = { version = "0.16", optional = true }
 
 [features]
-default = ["web-search", "interactive"]
+default = ["web-search", "interactive", "tui"]
 web-search = ["reqwest", "scraper"]
 interactive = ["dialoguer"]
+tui = ["ratatui", "crossterm", "textwrap"]
 
 [dev-dependencies]
 tempfile = "3"
 assert_cmd = "2"
 predicates = "3"
 clap_mangen = "0.2"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "search_bench"
+harness = false
+
+[[bench]]
+name = "symbol_bench"
+harness = false
 
 [profile.release]
 opt-level = 3
