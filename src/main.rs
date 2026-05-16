@@ -23,6 +23,7 @@ mod validate;
 mod where_cmd;
 mod symbol;
 mod context;
+mod graph;
 mod serve;
 
 #[cfg(feature = "interactive")]
@@ -448,6 +449,22 @@ fn main() {
         Commands::Serve { mcp, http, port, path } => {
             match serve::run_serve(mcp, http, port, &path) {
                 Ok(()) => 0,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        Commands::Graph {
+            path, graph_type, depth, format, json,
+        } => {
+            match graph::run_graph(&path, depth, &format, json, &graph_type) {
+                Ok(code) => code,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        Commands::Impact { target, path, json } => {
+            match graph::run_impact(&path, &target, json) {
+                Ok(code) => code,
                 Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
             }
         }

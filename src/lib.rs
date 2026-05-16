@@ -35,6 +35,7 @@ pub mod across;
 pub mod stats;
 pub mod symbol;
 pub mod context;
+pub mod graph;
 pub mod serve;
 pub mod cli;
 

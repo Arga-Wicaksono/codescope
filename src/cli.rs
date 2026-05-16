@@ -616,6 +616,43 @@ pub enum Commands {
     /// Show configuration file path and current config
     Config,
 
+    /// Build and display dependency graph (module imports, call graph)
+    Graph {
+        /// Directory to analyze (default: current directory)
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        /// Graph type: "modules" for imports, "calls" for function calls
+        #[arg(short = 't', long, default_value = "modules")]
+        graph_type: String,
+
+        /// Maximum depth of dependency traversal
+        #[arg(short = 'd', long)]
+        depth: Option<usize>,
+
+        /// Output format: "tree", "flat", "dot" (Graphviz DOT format)
+        #[arg(short = 'f', long, default_value = "tree")]
+        format: String,
+
+        /// Output as JSON
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
+    /// Analyze impact — what depends on this file/symbol?
+    Impact {
+        /// Target file or module to analyze
+        target: String,
+
+        /// Directory to analyze (default: current directory)
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        /// Output as JSON
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
     /// Print JSON output schema for a command (for AI integration and documentation)
     Schema {
         /// Command name to show schema for (file, content, web, where, stats, recent, across, open, explain, history)
