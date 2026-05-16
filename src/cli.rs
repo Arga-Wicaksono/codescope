@@ -1,17 +1,18 @@
-/// Command-line argument parsing for codescope.
+/// Command-line argument parsing for CodeScope.
 use clap::{Parser, Subcommand, ValueEnum};
 use crate::types::FileType;
 
-/// CodeScope — A unified search tool for files, content, and web.
+/// CodeScope — Repository Intelligence Engine for AI & Developers.
 #[derive(Parser, Debug)]
 #[command(
     name = "cs",
     version,
-    about = "Scope your codebase — file, content, and web search in one binary",
-    long_about = "A blazing fast, Rust-based CLI search tool.\n\n\
-                  Search files by name with fuzzy matching, search content\n\
-                  inside files with regex support, and search the web directly\n\
-                  from your terminal.\n\n\
+    about = "Repository Intelligence Engine — fast code retrieval, symbol lookup, and AI-ready context extraction",
+    long_about = "CodeScope makes repositories understandable instantly — for humans and AI systems.\n\n\
+                  Fast file search, content search, definition finding, cross-repo search,\n\
+                  and structured JSON output for AI agents and scripting.\n\n\
+                  Core principles: deterministic, blazing fast, scriptable,\n\
+                  AI-consumable, local-first, zero runtime dependencies.\n\n\
                   Respects .gitignore by default (use --no-ignore to disable).\n\
                   Uses smart case: case-insensitive unless pattern has uppercase.\n\n\
                   Config file: ~/.codescope.json (or $CS_CONFIG env var)"

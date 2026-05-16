@@ -45,7 +45,7 @@ fn resolve_extensions(
 
 fn print_banner() {
     eprintln!(
-        "\n  {} {} — Code Scope CLI\n",
+        "\n  {} {} — CodeScope\n",
         "cs".bold().cyan(),
         format!("v{}", VERSION).dimmed()
     );
@@ -61,7 +61,7 @@ fn print_branded_banner() {
     "#;
     eprintln!("{}", art.dimmed());
     eprintln!(
-        "  {} {} — Scope your codebase in one binary\n",
+        "  {} {} — Repository Intelligence Engine\n",
         "cs".bold().cyan(),
         format!("v{}", VERSION).yellow()
     );
@@ -71,18 +71,18 @@ fn print_branded_banner() {
     );
     eprintln!("  {:<20} {}", "cs file <pattern>".green(), "Search files by name");
     eprintln!("  {:<20} {}", "cs content <pattern>".green(), "Search inside files");
+    eprintln!("  {:<20} {}", "cs where <name>".green(), "Find definitions");
     eprintln!("  {:<20} {}", "cs open <pattern>".green(), "Find + open in editor");
     eprintln!("  {:<20} {}", "cs recent".green(), "Recently modified files");
-    eprintln!("  {:<20} {}", "cs where <name>".green(), "Find definitions");
-    eprintln!("  {:<20} {}", "cs web <query>".green(), "Search the web");
+    eprintln!("  {:<20} {}", "cs stats".green(), "Repository statistics");
     eprintln!("  {:<20} {}", "cs across <pattern>".green(), "Cross-repo search");
-    eprintln!("  {:<20} {}", "cs stats".green(), "File statistics");
+    eprintln!("  {:<20} {}", "cs web <query>".green(), "Search the web");
     eprintln!();
 }
 
 #[allow(dead_code)]
 fn print_help() -> i32 {
-    println!("\n{}", "cs — Code Scope CLI".bold().cyan());
+    println!("\n{}", "cs — CodeScope".bold().cyan());
     println!("{}\n", format!("Version {}", VERSION).dimmed());
 
     println!("{}", "COMMANDS:".bold());

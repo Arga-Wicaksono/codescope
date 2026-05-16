@@ -1,44 +1,49 @@
 # Product Hunt Launch Guide — CodeScope
 
 ## Tagline
-**cs — Scope your codebase. File + content + web search in one binary.**
+**CodeScope — Repository Intelligence Engine for AI & Developers**
 
 ## Short Description (60 chars max)
 ```
-One CLI to search files, content, and the web. Built in Rust.
+One CLI to understand any repo. Fast search, symbol intel, AI-ready context. Built in Rust.
 ```
 
 ## Topics/Tags
-Developer Tools, Open Source, Productivity, CLI, Rust, Search, Terminal
+Developer Tools, Open Source, Productivity, CLI, Rust, AI Tools, Code Intelligence, Search, Terminal
 
 ## First Comment (Maker Comment)
 
 ```
 Hey Product Hunt! 👋
 
-I built `cs` (CodeScope) because I was tired of chaining fd, rg, and fzf together for every search task.
+I built CodeScope because understanding large codebases is the biggest bottleneck in software development — for both humans and AI agents.
 
-The pain: finding a file, then opening it, then searching content, then looking something up on the web — each requires a different tool and a pipe chain.
+The problem: developers chain fd, rg, ctags, and custom scripts. AI agents get random context and hallucinate. Neither approach is reliable.
 
-`cs` does all three (file search, content search, web search) plus developer shortcuts (open, recent, where, explain, stats, across, history) in one 2MB binary.
+CodeScope solves this differently — it's not an AI assistant or a chatbot. It's repository infrastructure. A single ~2 MB binary that makes any codebase instantly understandable through fast search, symbol intelligence, and AI-ready structured output.
 
-Highlights:
-• 3 matching modes: fuzzy, exact, regex
-• Cross-repo search with parallel processing
-• Find function/class definitions across 7+ languages
-• Explain regex patterns in plain English
-• JSON output for scripting, completions for 5 shells
-• Built-in interactive picker (no fzf needed)
+What makes it different:
+• Deterministic and blazing fast — Rust-native, same query always returns the same results
+• AI-consumable — every command outputs structured JSON, perfect for LLM prompt packing
+• Symbol intelligence — find function/class definitions across 7+ languages
+• Cross-repo search — search across your entire workspace at once
+• Zero dependencies — one binary, no runtime, no cloud, no API keys
+
+Roadmap highlights:
+• Tree-sitter symbol indexing (cs symbol, cs refs, cs callers)
+• Context engine — intelligent code extraction for AI prompts
+• MCP protocol support — Claude and Cursor can use CodeScope natively
 
 Written in Rust. MIT license. Open source.
 
 Try it: cargo install --git https://github.com/Arga-Wicaksono/codescope.git
+Repo: https://github.com/Arga-Wicaksono/codescope
 ```
 
 ## Gallery
 1. `assets/logo.png` — Logo/icon (1024x1024)
-2. Screenshots: `cs` (banner), `cs file`, `cs content`, `cs stats`, `cs across`
-3. Demo GIF (recommended)
+2. `assets/demo.gif` — Demo showing commands
+3. Screenshots: bare `cs` (banner), `cs file`, `cs content -j`, `cs where`, `cs stats`
 
 ## Pricing
 Free and Open Source (MIT)

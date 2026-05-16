@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="cs logo" width="120" height="120">
+  <img src="assets/logo.png" alt="CodeScope logo" width="120" height="120">
 </p>
 
 <p align="center">
@@ -10,11 +10,11 @@
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform">
 </p>
 
-<h1 align="center">cs — Code Scope</h1>
+<h1 align="center">CodeScope</h1>
 
 <p align="center">
-  <strong>Scope your codebase — file + content + web search in one binary.</strong><br>
-  No pipe setup. No runtime dependencies. Just <code>cs</code>.
+  <strong>Repository Intelligence Engine for AI & Developers</strong><br>
+  Make repositories understandable instantly — fast, deterministic, and AI-ready.
 </p>
 
 <p align="center">
@@ -22,61 +22,88 @@
 </p>
 
 <p align="center">
+  <a href="#why-codescope">Why</a> ·
+  <a href="#use-cases">Use Cases</a> ·
   <a href="#installation">Install</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="#commands">Commands</a> ·
-  <a href="#matching-modes">Matching Modes</a> ·
-  <a href="#configuration">Config</a> ·
-  <a href="#comparison">Comparison</a>
+  <a href="#architecture">Architecture</a> ·
+  <a href="#roadmap">Roadmap</a>
 </p>
 
 ---
 
-## Why `cs`?
+## Why CodeScope?
 
-Tools like `rg` and `fzf` are great, but real workflows often look like this:
+Large codebases are hard to understand — for humans navigating unfamiliar code, and for AI agents that need precise context to be effective. Existing tools solve pieces of the problem:
+
+| Tool | Does one thing well | But misses... |
+|------|---------------------|---------------|
+| `ripgrep` | Fast content search | No symbol intelligence, no context |
+| `fd` | File finding | No content, no definitions |
+| `ctags` | Symbol indexing | Stale, no ranking, not AI-ready |
+| `LSP` | Editor navigation | Not scriptable, editor-bound |
+| `Sourcegraph` | Code intelligence | Cloud-only, not local-first |
+
+**CodeScope bridges all of these gaps** in a single ~2 MB binary. It provides fast file and content search today, with a clear path toward symbol intelligence, dependency tracing, and AI-consumable structured output. One tool, local-first, zero runtime dependencies, deterministic results every time.
+
+### Core Principles
+
+| Principle | What it means |
+|-----------|---------------|
+| **Deterministic** | Same query, same results — always. No randomness, no approximation. |
+| **Blazing fast** | Rust-native with rayon parallelism. Built for large repos (100k+ files). |
+| **Scriptable** | Every command outputs structured JSON (`-j`), perfect for pipes and automation. |
+| **AI-consumable** | Stable schemas, ranked results, context extraction built for LLM prompt packing. |
+| **Local-first** | No cloud, no API keys, no network. Everything runs on your machine. |
+| **Zero dependencies** | One static binary. No runtime, no JVM, no Node. Just `cs`. |
+
+---
+
+## Use Cases
+
+### For Developers
 
 ```bash
-# Find a file, then open it
-fd pattern | fzf
+# Debugging — find where an error originates
+cs content "connection refused" --type rust -n -C 3
+cs where "handle_connection"          # Jump to the function definition
 
-# Search content, pipe to interactive picker
-rg "TODO" | fzf
+# Navigation — understand unfamiliar code
+cs content "UserService" -n           # Find all references
+cs where "authenticate"               # Find where auth logic lives
+cs stats --type rust                  # Understand project composition
 
-# Search the web? Open a browser.
+# Architecture understanding — see the big picture
+cs content "pub fn\|pub async fn" --type rust --count   # All public APIs
+cs file "mod.rs" -j                   # Module structure as JSON
+
+# Refactoring — find what needs to change
+cs across "deprecated" --workspace ~/projects  # Find across all repos
+cs content "TODO\|FIXME\|HACK" --regex --count # Tech debt inventory
 ```
 
-`cs` is a single tool that handles all three — **file search**, **content search**, and **web search** — with built-in interactive mode, three matching strategies, JSON output for scripting, and a persistent config file. One ~2 MB binary, zero runtime dependencies.
+### For AI Agents
 
-## Features
+```bash
+# Context retrieval — give AI the right files
+cs content "auth middleware" --type rust -n -C 5 -j
+# → Structured JSON with file paths, line numbers, and context
 
-| Feature | Details |
-|---------|---------|
-| **Unified search** | File names, file contents, and web — all in one tool |
-| **3 matching modes** | Fuzzy (default), exact (`-x`), and regex (`--regex`) |
-| **Interactive mode** | Built-in fuzzy-select with `-I` — no `fzf` pipe needed |
-| **JSON output** | Zero-config `-j` flag for scripting and piping |
-| **Parallel processing** | Content search parallelized with rayon |
-| **Config file** | Persistent defaults in `~/.codescope.json` |
-| **Colored output** | Auto-detected TTY colors, disable with `--no-color` |
-| **Cross-platform** | Prebuilt binaries for Linux/macOS/Windows |
-| **Compact binary** | ~2 MB with LTO + strip, no runtime dependencies |
-| **.gitignore aware** | Respects `.gitignore`, `.ignore`, global gitignore by default |
-| **Smart case** | Case-insensitive unless pattern has uppercase (like ripgrep) |
-| **Stdin pipe** | `cat file \| cs content 'pattern'` — search piped input |
-| **Shell completions** | `cs completions bash\|zsh\|fish\|powershell\|elvish` |
-| **File type presets** | `--type rust/python/js/web/cpp/go/java/config/doc/data/shell` |
-| **Replace mode** | `--replace 'text'` dry run, `--write` to apply changes |
-| **Count mode** | `--count` shows per-file match counts |
-| **Invert match** | `--invert` shows non-matching lines |
-| **cs open** | Search files + open in `$EDITOR` with line support |
-| **cs recent** | Find recently modified files with relative times |
-| **cs where** | Find function/class definitions across languages |
-| **cs explain** | Explain regex patterns in plain language |
-| **cs history** | Search history with auto-rotation |
-| **cs across** | Cross-repository search (`--repos`, `--workspace`) |
-| **cs stats** | File statistics (per-language line counts) |
-| **Feature flags** | Build only what you need (`web-search`, `interactive`) |
+# Prompt packing — gather ranked context for LLM
+cs file "config" -e rs -j                  # Config files as JSON
+cs content "pub struct" --type rust -j      # All types for context
+
+# Repository mapping — let AI understand structure
+cs stats -j                                # Project composition
+cs where "trait Handler" -j                # Interface definitions
+
+# Symbol lookup — precise code navigation
+cs where "handle_request" -j               # Definition location
+cs content "handle_request" -n -C 2 -j     # Usage with context
+```
+
+> **Why JSON matters for AI:** Structured output (`-j`) turns freeform search results into deterministic, parseable data. AI agents and CI/CD pipelines can consume `cs` output directly without parsing human-readable text.
 
 ---
 
@@ -127,50 +154,26 @@ cargo build --release --no-default-features
 ## Quick Start
 
 ```bash
-# Find files by name
-cs file "Cargo"
+# Understand a project instantly
+cs stats                            # Project composition by language
+cs file "config" -I                 # Fuzzy-find config files interactively
+cs content "fn main" -n -C 2        # Search with context
 
-# Search content with fuzzy matching
-cs content "fn main"
+# Navigate code like a pro
+cs where "parse_config"             # Jump to definition
+cs open "main" --line 42            # Open file at exact line
+cs recent --type rust --since '2h'  # What changed recently?
 
-# Search content with line numbers and context
-cs content "fn main" -n -C 2
+# Get AI-ready structured output
+cs content "auth" --type rust -j    # JSON output for scripts/AI
+cs where "Handler" -j               # Symbol locations as JSON
 
-# Exact match (no fuzzy false positives)
-cs content "config" -x -i
+# Search across repositories
+cs across "TODO" --workspace ~/projects   # Find across all repos
+cs explain '\s+\w+'                      # Understand regex patterns
 
-# Regex match
-cs content 'TODO|FIXME|HACK' --regex
-
-# Interactive selection from results
-cs file "config" -I
-
-# Web search
-cs web "rust tutorial" -l 5
-
-# Replace mode
-cs content 'old_api' --replace 'new_api' -x
-cs content 'old_api' --replace 'new_api' -x --write
-
-# Open file in editor
-cs open 'main' --line 42
-cs open 'TODO' -I
-
-# Recently modified files
-cs recent --type rust --since '2h'
-
-# Find function/class definitions
-cs where 'parse_config'
-cs where 'MyStruct' --open
-
-# Explain regex
-cs explain '\s+\w+'
-
-# Cross-repository search
-cs across 'TODO' --workspace ~/projects
-
-# File statistics
-cs stats --type rust
+# Web search from terminal
+cs web "rust async tutorial" -l 5
 ```
 
 ---
@@ -186,7 +189,7 @@ cs file "Cargo"           # Basic fuzzy search
 cs file "main" -e rs      # Filter by extension
 cs file "test" --depth 2  # Limit recursion depth
 cs file "config" -I       # Interactive selection
-cs file "config" -j       # JSON output
+cs file "config" -j       # JSON output (AI-ready)
 ```
 
 ### `cs content <pattern>` — Content Search
@@ -201,7 +204,19 @@ cs content "TODO" -n      # Show line numbers
 cs content "error" -C 3   # 3 context lines
 cs content "TODO" --count  # Per-file match counts
 cs content "fn" --invert   # Non-matching lines
+cs content "auth" -j       # Structured JSON output
 ```
+
+### `cs where <name>` — Find Definitions
+
+```bash
+cs where 'parse_config'   # Search all source files
+cs where 'MyStruct' --type rust
+cs where 'handler' --open  # Find + open at definition line
+cs where 'Handler' -j      # JSON output for AI consumption
+```
+
+Supports: Rust, Python, JS/TS, Go, Java/Kotlin, C/C++.
 
 ### `cs open <pattern>` — Search + Open in Editor
 
@@ -220,23 +235,6 @@ cs recent --since '2h'     # Modified in last 2 hours
 cs recent --open           # Open most recent in editor
 ```
 
-### `cs where <name>` — Find Definitions
-
-```bash
-cs where 'parse_config'   # Search all source files
-cs where 'MyStruct' --type rust
-cs where 'handler' --open  # Find + open at definition line
-```
-
-Supports: Rust, Python, JS/TS, Go, Java/Kotlin, C/C++.
-
-### `cs explain <pattern>` — Explain Regex
-
-```bash
-cs explain '\s+\w+'         # Explains each token
-cs explain '[A-Z][a-z]+'
-```
-
 ### `cs across <pattern>` — Cross-Repository Search
 
 ```bash
@@ -249,7 +247,21 @@ cs across 'error' --repos /a/repo1,/b/repo2
 ```bash
 cs stats                   # Current directory stats
 cs stats --type rust       # Rust files only
-cs stats --json          # JSON output
+cs stats -j                # JSON output (AI-ready)
+```
+
+### `cs explain <pattern>` — Explain Regex
+
+```bash
+cs explain '\s+\w+'         # Explains each token
+cs explain '[A-Z][a-z]+'
+```
+
+### `cs web <query>` — Web Search
+
+```bash
+cs web "rust tutorial" -l 5   # Search DuckDuckGo from terminal
+cs web "async await" -j        # JSON output
 ```
 
 ---
@@ -264,6 +276,23 @@ cs stats --json          # JSON output
 
 ---
 
+## JSON Output (`-j`)
+
+Every command supports structured JSON output via the `-j` flag. This is the foundation for AI integration and scripting:
+
+```bash
+# Human-readable
+$ cs content "auth" --type rust -n
+src/auth/mod.rs:15:pub fn authenticate(token: &str) -> Result<User>
+src/auth/handler.rs:8:async fn auth_handler(req: Request) -> Response
+
+# Same query, AI-ready JSON
+$ cs content "auth" --type rust -n -j
+{"results":[{"file":"src/auth/mod.rs","line":15,"content":"pub fn authenticate(token: &str) -> Result<User>"},{"file":"src/auth/handler.rs","line":8,"content":"async fn auth_handler(req: Request) -> Response"}],"count":2,"query":"auth"}
+```
+
+---
+
 ## Exit Codes
 
 | Code | Meaning |
@@ -274,20 +303,60 @@ cs stats --json          # JSON output
 
 ---
 
-## Comparison with Other Tools
+## Architecture
 
-| Feature | `cs` | `fd` | `rg` | `fzf` |
-|---------|------|------|------|-------|
-| Fuzzy file search | Yes | Yes | No | Yes |
-| Content search | Fuzzy + exact + regex | No | Regex only | No |
-| Web search | Yes (DuckDuckGo) | No | No | No |
-| Matching modes | 3 (fuzzy/exact/regex) | 1 (glob) | 1 (regex) | 1 (fuzzy) |
-| Interactive mode | Built-in (`-I`) | Via pipe | Via pipe | Yes |
-| JSON output | Yes (`-j`) | No | No | No |
-| Config file | Yes | No | Yes | No |
-| Parallel processing | Yes (rayon) | Yes | Yes | No |
-| Cross-repo search | Yes | No | No | No |
-| Written in | Rust | Rust | Rust | Go |
+```
+┌──────────────────────────────────────────────┐
+│                 Repository                    │
+│  (files, symbols, dependencies, git history) │
+└──────────────────┬───────────────────────────┘
+                   │
+          ┌────────▼────────┐
+          │    CodeScope     │
+          │    (cs binary)   │
+          │                  │
+          │  ┌────────────┐  │
+          │  │ File Search │  │
+          │  │ Content S.  │  │
+          │  │ Symbol Intel│  │
+          │  │ Context Eng.│  │
+          │  │ Dep Graph   │  │
+          │  └────────────┘  │
+          └────────┬────────┘
+                   │
+       ┌───────────┼───────────┐
+       │                       │
+  ┌────▼─────┐          ┌──────▼──────┐
+  │ Developer │          │  AI Agent   │
+  │  (CLI)   │          │ (JSON/CLI)  │
+  │ Terminal │          │ MCP / Pipe  │
+  └──────────┘          └─────────────┘
+```
+
+### Design Philosophy
+
+CodeScope is a **pipeline tool**, not a platform. It takes a repository as input and produces structured context as output. This makes it composable — you can pipe `cs` output into any AI agent, CI/CD pipeline, or custom script.
+
+**Today:** File search, content search, definition finding, cross-repo search, statistics.
+**Next:** Symbol indexing (Tree-sitter), context engine, dependency graph, MCP protocol.
+**Never:** AI chatbot, code generation, cloud platform. CodeScope is infrastructure.
+
+---
+
+## Comparison
+
+| Feature | `cs` | `fd` | `rg` | `fzf` | `ctags` | LSP |
+|---------|------|------|------|-------|---------|-----|
+| Fuzzy file search | Yes | Yes | No | Yes | No | No |
+| Content search | Fuzzy + exact + regex | No | Regex only | No | No | Yes |
+| Symbol intelligence | Basic → Full (roadmap) | No | No | No | Stale | Yes |
+| Cross-repo search | Yes | No | No | No | No | No |
+| JSON output | Yes (`-j`) | No | No | No | No | No |
+| AI-ready context | Yes (roadmap) | No | No | No | No | No |
+| Interactive mode | Built-in (`-I`) | Via pipe | Via pipe | Yes | No | Editor |
+| Local-first | Yes | Yes | Yes | Yes | Yes | Yes |
+| Zero runtime deps | Yes | Yes | Yes | Yes | Yes | No |
+| Written in | Rust | Rust | Rust | Go | C | Various |
 
 ---
 
@@ -314,17 +383,24 @@ cargo test
 
 ---
 
+## Roadmap
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for the full development roadmap.
+
+**Next milestones:**
+- **Phase 2** — Stable JSON schemas, machine-friendly output for all commands
+- **Phase 3** — Symbol intelligence with Tree-sitter (`cs symbol`, `cs refs`, `cs callers`)
+- **Phase 7** — MCP protocol support (Claude, Cursor, AI agents can use `cs` directly)
+
+---
+
 ## Contributing
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
----
-
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
-
----
 
 ## License
 
@@ -333,7 +409,9 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>Built with Rust by Arga Wicaksono</strong> ·
+  <strong>Repository Intelligence Infrastructure for the AI Coding Era</strong><br>
+  Built with Rust by <a href="https://github.com/Arga-Wicaksono">Arga Wicaksono</a> ·
   <a href="https://github.com/Arga-Wicaksono/codescope">GitHub</a> ·
-  <a href="https://github.com/Arga-Wicaksono/codescope/releases">Releases</a>
+  <a href="https://github.com/Arga-Wicaksono/codescope/releases">Releases</a> ·
+  <a href="docs/ROADMAP.md">Roadmap</a>
 </p>

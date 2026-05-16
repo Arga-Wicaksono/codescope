@@ -2,12 +2,12 @@
 name = "codescope"
 version = "1.0.0"
 edition = "2021"
-description = "Scope your codebase — file, content, and web search in one binary"
+description = "Repository Intelligence Engine — fast code retrieval, symbol lookup, and AI-ready context extraction for developers and AI agents"
 authors = ["Arga Wicaksono"]
 license = "MIT"
 repository = "https://github.com/Arga-Wicaksono/codescope"
-keywords = ["cli", "search", "fuzzy", "ripgrep", "find", "code", "scope"]
-categories = ["Command Line Interface", "Search", "Development tools"]
+keywords = ["cli", "search", "code-intelligence", "symbol-lookup", "ripgrep", "repository", "ai-tools", "context-engine", "developer-tools", "fuzzy"]
+categories = ["Command Line Interface", "Development tools", "Search"]
 homepage = "https://github.com/Arga-Wicaksono/codescope"
 readme = "README.md"
 
