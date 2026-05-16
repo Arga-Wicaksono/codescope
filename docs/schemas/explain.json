@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs explain output",
+  "description": "JSON output schema for the 'cs explain' command. Returns token-by-token explanations of a regex pattern.",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "query",
+    "source",
+    "count",
+    "elapsed_secs",
+    "results"
+  ],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "const": "codescope"
+    },
+    "version": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string",
+      "const": "explain"
+    },
+    "query": {
+      "type": "string",
+      "description": "The regex pattern being explained."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["filesystem", "stdin", "web"]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of tokens explained."
+    },
+    "elapsed_secs": {
+      "type": "number"
+    },
+    "results": {
+      "type": "array",
+      "description": "Array of token explanations (never 'explanations').",
+      "items": {
+        "type": "object",
+        "required": ["token", "description"],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The regex token (e.g. '\\d', '+', '[A-Z]')."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of what the token matches."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

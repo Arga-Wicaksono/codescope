@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs stats output",
+  "description": "JSON output schema for the 'cs stats' command. Returns language-level file/line statistics. Includes extra root-level fields total_files and total_lines.",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "query",
+    "source",
+    "count",
+    "elapsed_secs",
+    "total_files",
+    "total_lines",
+    "results"
+  ],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "const": "codescope"
+    },
+    "version": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string",
+      "const": "stats"
+    },
+    "query": {
+      "type": "string",
+      "description": "The path that was scanned (typically '.' or a directory)."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["filesystem", "stdin", "web"]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of distinct languages in the results array."
+    },
+    "elapsed_secs": {
+      "type": "number"
+    },
+    "total_files": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of files scanned."
+    },
+    "total_lines": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of lines across all files."
+    },
+    "results": {
+      "type": "array",
+      "description": "Per-language statistics, sorted by lines descending.",
+      "items": {
+        "type": "object",
+        "required": ["language", "files", "lines", "bytes", "percentage"],
+        "properties": {
+          "language": {
+            "type": "string",
+            "description": "Language name (e.g. 'Rust', 'Python')."
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of files for this language."
+          },
+          "lines": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total lines for this language."
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total bytes for this language."
+          },
+          "percentage": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "Percentage of total lines this language represents."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,5 +1,7 @@
 use colored::Colorize;
 
+use crate::utils::Timer;
+
 pub fn run_recent(
     path: &str,
     exclude: Option<&str>,
@@ -20,6 +22,7 @@ pub fn run_recent(
     };
     let extensions_ref = extensions.as_deref();
 
+    let timer = Timer::new();
     let mut files: Vec<(String, std::time::SystemTime)> = Vec::new();
 
     let mut builder = ignore::WalkBuilder::new(path);
@@ -75,13 +78,31 @@ pub fn run_recent(
     files.truncate(max);
 
     if json {
-        let json_output = serde_json::json!({
-            "tool": "codescope",
-            "command": "recent",
-            "count": files.len(),
-            "results": files.iter().map(|(path, _)| path).collect::<Vec<_>>()
-        });
-        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+        let elapsed = timer.elapsed_secs();
+        let results_json: Vec<serde_json::Value> = files
+            .iter()
+            .map(|(file_path, modified)| {
+                let p = std::path::Path::new(file_path);
+                let ext = p
+                    .extension()
+                    .map(|e| e.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                let size = std::fs::metadata(file_path).map(|m| m.len()).unwrap_or(0);
+                let time_ago = format_time_ago(modified);
+                serde_json::to_value(crate::output_schema::RecentResultItem {
+                    path: file_path.clone(),
+                    modified: time_ago,
+                    size_bytes: size,
+                    extension: ext,
+                })
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope(
+            "recent", ".", "filesystem", files.len(), elapsed,
+            serde_json::json!(results_json),
+        );
+        crate::output_schema::print_json(&output);
         return Ok(0);
     }
 

@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs where output",
+  "description": "JSON output schema for the 'cs where' command. Returns symbol/definition locations across languages.",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "query",
+    "source",
+    "count",
+    "elapsed_secs",
+    "results"
+  ],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "const": "codescope"
+    },
+    "version": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string",
+      "const": "where"
+    },
+    "query": {
+      "type": "string",
+      "description": "The symbol name searched for."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["filesystem", "stdin", "web"]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "elapsed_secs": {
+      "type": "number"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "line", "content", "language", "kind"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Relative path to the file containing the definition."
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based line number where the definition was found."
+          },
+          "content": {
+            "type": "string",
+            "description": "The line content containing the definition."
+          },
+          "language": {
+            "type": "string",
+            "description": "Detected language (e.g. 'rust', 'python', 'javascript')."
+          },
+          "kind": {
+            "type": "string",
+            "description": "Type of definition (e.g. 'fn', 'struct', 'class')."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

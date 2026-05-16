@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs open output",
+  "description": "JSON output schema for the 'cs open' command. Returns a single-item result for the best-matching file to open.",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "query",
+    "source",
+    "count",
+    "elapsed_secs",
+    "results"
+  ],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "const": "codescope"
+    },
+    "version": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string",
+      "const": "open"
+    },
+    "query": {
+      "type": "string",
+      "description": "The search pattern used to find the file."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["filesystem", "stdin", "web"]
+    },
+    "count": {
+      "type": "integer",
+      "const": 1,
+      "description": "Always 1 — a single best-match file."
+    },
+    "elapsed_secs": {
+      "type": "number"
+    },
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "description": "Single-element array containing the opened file.",
+      "items": {
+        "type": "object",
+        "required": ["file", "path", "score"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "File name."
+          },
+          "path": {
+            "type": "string",
+            "description": "Full path to the file."
+          },
+          "score": {
+            "type": "integer",
+            "description": "Fuzzy-match score."
+          },
+          "line": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "description": "Requested line number to open at, or null if not specified."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

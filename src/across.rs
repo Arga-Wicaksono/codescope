@@ -1,5 +1,6 @@
 use colored::Colorize;
 
+use crate::utils::Timer;
 use rayon::prelude::*;
 
 pub fn run_across(
@@ -17,6 +18,7 @@ pub fn run_across(
 ) -> Result<i32, String> {
     crate::validate::validate_pattern(pattern)?;
 
+    let timer = Timer::new();
     let repo_paths = resolve_repos(repos, workspace, repos_file)?;
 
     if repo_paths.is_empty() {
@@ -64,16 +66,25 @@ pub fn run_across(
     all_results.truncate(max_per_repo * repo_paths.len());
 
     if json {
-        let json_output = serde_json::json!({
-            "tool": "codescope",
-            "command": "across",
-            "pattern": pattern,
-            "repositories": repo_paths.len(),
-            "results": all_results.iter().map(|(repo, file, line, content, _)| {
-                serde_json::json!({"repo": repo, "file": file, "line": line, "content": content})
-            }).collect::<Vec<_>>()
-        });
-        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+        let elapsed = timer.elapsed_secs();
+        let results_json: Vec<serde_json::Value> = all_results
+            .iter()
+            .map(|(repo, file, line, content, repo_path)| {
+                serde_json::to_value(crate::output_schema::AcrossResultItem {
+                    repo: repo.clone(),
+                    file: file.clone(),
+                    path: repo_path.clone(),
+                    line: *line,
+                    content: content.clone(),
+                })
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope(
+            "across", pattern, "filesystem", all_results.len(), elapsed,
+            serde_json::json!(results_json),
+        );
+        crate::output_schema::print_json(&output);
         return Ok(if all_results.is_empty() { 1 } else { 0 });
     }
 

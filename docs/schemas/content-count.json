@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs content --count output",
+  "description": "JSON output schema for 'cs content --count'. Returns per-file match counts.",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "query",
+    "source",
+    "count",
+    "elapsed_secs",
+    "results"
+  ],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "const": "codescope"
+    },
+    "version": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string",
+      "const": "content"
+    },
+    "query": {
+      "type": "string",
+      "description": "The search pattern."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["filesystem", "stdin", "web"]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of files that had matches."
+    },
+    "elapsed_secs": {
+      "type": "number"
+    },
+    "results": {
+      "type": "array",
+      "description": "Array of per-file counts (never 'counts').",
+      "items": {
+        "type": "object",
+        "required": ["file", "path", "count"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "Display file name (relative to search root)."
+          },
+          "path": {
+            "type": "string",
+            "description": "Full file path."
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of matching lines in this file."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

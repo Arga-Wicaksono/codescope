@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs file output",
+  "description": "JSON output schema for the 'cs file' command. Returns fuzzy-matched file names ranked by relevance score.",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "query",
+    "source",
+    "count",
+    "elapsed_secs",
+    "results"
+  ],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "const": "codescope",
+      "description": "Always 'codescope'."
+    },
+    "version": {
+      "type": "string",
+      "description": "Semver version of the codescope binary."
+    },
+    "command": {
+      "type": "string",
+      "const": "file",
+      "description": "The sub-command that produced this output."
+    },
+    "query": {
+      "type": "string",
+      "description": "The search term the user supplied."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["filesystem", "stdin", "web"],
+      "description": "Where the data was read from."
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of items in the results array."
+    },
+    "elapsed_secs": {
+      "type": "number",
+      "description": "Wall-clock seconds the command took."
+    },
+    "results": {
+      "type": "array",
+      "description": "Array of matching files.",
+      "items": {
+        "type": "object",
+        "required": ["filename", "path", "score", "extension", "size_bytes"],
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "Base file name (e.g. 'main.rs')."
+          },
+          "path": {
+            "type": "string",
+            "description": "Full or relative path to the file."
+          },
+          "score": {
+            "type": "integer",
+            "description": "Fuzzy-match relevance score (higher = better)."
+          },
+          "extension": {
+            "type": "string",
+            "description": "File extension without leading dot (e.g. 'rs', 'py')."
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "File size in bytes."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

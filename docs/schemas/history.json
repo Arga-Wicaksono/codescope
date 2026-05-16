@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs history output",
+  "description": "JSON output schema for the 'cs history' command. Returns recorded search history entries wrapped in the standard envelope (not a bare array).",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "query",
+    "source",
+    "count",
+    "elapsed_secs",
+    "results"
+  ],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "const": "codescope"
+    },
+    "version": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string",
+      "const": "history"
+    },
+    "query": {
+      "type": "string",
+      "description": "Empty string or a description for the history query."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["filesystem", "stdin", "web"]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of history entries returned."
+    },
+    "elapsed_secs": {
+      "type": "number"
+    },
+    "results": {
+      "type": "array",
+      "description": "Array of history entries. Wrapped in the standard envelope (not a bare JSON array).",
+      "items": {
+        "type": "object",
+        "required": ["timestamp", "command", "pattern", "path", "results", "elapsed_secs"],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "Unix epoch timestamp (seconds) when the search was run."
+          },
+          "command": {
+            "type": "string",
+            "description": "The codescope sub-command used (e.g. 'file', 'content')."
+          },
+          "pattern": {
+            "type": "string",
+            "description": "The search pattern used."
+          },
+          "path": {
+            "type": "string",
+            "description": "The search path or working directory."
+          },
+          "results": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of results the original search returned."
+          },
+          "elapsed_secs": {
+            "type": "number",
+            "description": "How long the original search took."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

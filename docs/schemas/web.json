@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs web output",
+  "description": "JSON output schema for the 'cs web' command. Returns web search results from DuckDuckGo.",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "query",
+    "source",
+    "count",
+    "elapsed_secs",
+    "results"
+  ],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "const": "codescope"
+    },
+    "version": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string",
+      "const": "web"
+    },
+    "query": {
+      "type": "string",
+      "description": "The web search query string."
+    },
+    "source": {
+      "type": "string",
+      "const": "web",
+      "description": "Always 'web' for this command."
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "elapsed_secs": {
+      "type": "number"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "url", "snippet"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Page title from the search result."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the search result."
+          },
+          "snippet": {
+            "type": "string",
+            "description": "Text snippet / excerpt from the page."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

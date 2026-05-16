@@ -93,7 +93,30 @@ pub fn search_files(
     let elapsed = timer.elapsed_secs();
 
     if json {
-        crate::output::print_file_results_json(&results, pattern, elapsed);
+        use std::path::Path;
+        let results_json: Vec<serde_json::Value> = results
+            .iter()
+            .map(|(filename, full_path, score)| {
+                let ext = Path::new(full_path)
+                    .extension()
+                    .map(|e| e.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                let size = std::fs::metadata(full_path).map(|m| m.len()).unwrap_or(0);
+                serde_json::to_value(crate::output_schema::FileResultItem {
+                    filename: filename.clone(),
+                    path: full_path.clone(),
+                    score: *score,
+                    extension: ext,
+                    size_bytes: size,
+                })
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope(
+            "file", pattern, "filesystem", results.len(), elapsed,
+            serde_json::json!(results_json),
+        );
+        crate::output_schema::print_json(&output);
     } else {
         crate::output::print_file_results(&results, pattern, path, elapsed);
     }

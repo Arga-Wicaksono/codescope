@@ -1,9 +1,11 @@
 use colored::Colorize;
 
+use crate::utils::Timer;
 use std::collections::HashMap;
 use std::fs;
 
 pub fn run_stats(path: &str, file_type: Option<crate::types::FileType>, extension: Option<&str>, json: bool) -> Result<(), String> {
+    let timer = Timer::new();
     let extensions: Option<Vec<&str>> = match (file_type, extension) {
         (Some(ft), _) => Some(ft.extensions().to_vec()),
         (_, Some(ext)) => Some(vec![ext]),
@@ -65,14 +67,26 @@ pub fn run_stats(path: &str, file_type: Option<crate::types::FileType>, extensio
     results.sort_by(|a, b| b.lines.cmp(&a.lines));
 
     if json {
-        let json_output = serde_json::json!({
-            "tool": "codescope",
-            "command": "stats",
-            "total_files": total_files,
-            "total_lines": total_lines,
-            "languages": results,
-        });
-        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+        let elapsed = timer.elapsed_secs();
+        let results_json: Vec<serde_json::Value> = results
+            .iter()
+            .map(|stat| {
+                serde_json::to_value(crate::output_schema::StatsResultItem {
+                    language: stat.language.clone(),
+                    files: stat.files,
+                    lines: stat.lines,
+                    bytes: stat.bytes as u64,
+                    percentage: stat.percentage,
+                })
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope_with_extra(
+            "stats", ".", "filesystem", results.len(), elapsed,
+            serde_json::json!(results_json),
+            serde_json::json!({"total_files": total_files, "total_lines": total_lines}),
+        );
+        crate::output_schema::print_json(&output);
         return Ok(());
     }
 

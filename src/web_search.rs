@@ -64,7 +64,22 @@ pub fn search_web(query: &str, limit: usize, timeout_secs: u64, json: bool) -> R
     let elapsed = timer.elapsed_secs();
 
     if json {
-        crate::output::print_web_results_json(&results, query, elapsed);
+        let results_json: Vec<serde_json::Value> = results
+            .iter()
+            .map(|(title, url, snippet)| {
+                serde_json::to_value(crate::output_schema::WebResultItem {
+                    title: title.clone(),
+                    url: url.clone(),
+                    snippet: snippet.clone(),
+                })
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope(
+            "web", query, "web", results.len(), elapsed,
+            serde_json::json!(results_json),
+        );
+        crate::output_schema::print_json(&output);
     } else {
         eprintln!("{} Web search: '{}'", ">>".cyan(), query.cyan());
         eprintln!("{}", "─".repeat(50).dimmed());

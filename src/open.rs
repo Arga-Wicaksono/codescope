@@ -29,15 +29,18 @@ pub fn run_open(
     let (filename, full_path, score) = &results[0];
 
     if json {
-        let json_output = serde_json::json!({
-            "tool": "codescope",
-            "action": "open",
-            "file": filename,
-            "path": full_path,
-            "score": score,
-            "line": line,
-        });
-        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+        let results_json = vec![serde_json::to_value(crate::output_schema::OpenResultItem {
+            file: filename.clone(),
+            path: full_path.clone(),
+            score: *score,
+            line,
+        })
+        .unwrap()];
+        let output = crate::output_schema::envelope(
+            "open", pattern, "filesystem", 1, 0.0,
+            serde_json::json!(results_json),
+        );
+        crate::output_schema::print_json(&output);
         return Ok(0);
     }
 

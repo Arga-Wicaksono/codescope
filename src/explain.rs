@@ -8,13 +8,21 @@ pub fn run_explain(pattern: &str, json: bool) -> Result<i32, String> {
     let explanations = explain_pattern(pattern);
 
     if json {
-        let json_output = serde_json::json!({
-            "tool": "codescope",
-            "command": "explain",
-            "pattern": pattern,
-            "explanations": explanations,
-        });
-        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+        let results_json: Vec<serde_json::Value> = explanations
+            .iter()
+            .map(|(token, desc)| {
+                serde_json::to_value(crate::output_schema::ExplainResultItem {
+                    token: token.clone(),
+                    description: desc.clone(),
+                })
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope(
+            "explain", pattern, "filesystem", explanations.len(), 0.0,
+            serde_json::json!(results_json),
+        );
+        crate::output_schema::print_json(&output);
         return Ok(0);
     }
 

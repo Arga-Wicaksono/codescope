@@ -14,6 +14,7 @@ mod file_search;
 mod history;
 mod open;
 mod output;
+mod output_schema;
 mod recent;
 mod stats;
 mod types;
@@ -369,6 +370,36 @@ fn main() {
             print_branded_banner();
             print_config_info(&cfg);
             0
+        }
+
+        Commands::Schema { command } => {
+            match command.as_deref() {
+                Some(cmd) => {
+                    match output_schema::get_schema(cmd) {
+                        Some(schema) => {
+                            output_schema::print_json(&schema);
+                            0
+                        }
+                        None => {
+                            eprintln!("{} Unknown command '{}'. Valid: file, content, content-replace, content-count, web, where, stats, recent, across, open, explain, history",
+                                "Error:".red().bold(), cmd);
+                            2
+                        }
+                    }
+                }
+                None => {
+                    // No command specified — list all available schemas
+                    eprintln!("{}", "CodeScope — Available JSON Schemas".bold().cyan());
+                    eprintln!("{}", "─".repeat(50).dimmed());
+                    let schemas = &["file", "content", "content-replace", "content-count", "web", "where", "stats", "recent", "across", "open", "explain", "history"];
+                    for s in schemas {
+                        eprintln!("  {} {}", format!("cs schema {}", s).green(), format!("(cs {} --json)", if *s == "content-replace" { "content --replace X" } else if *s == "content-count" { "content --count" } else { s }).dimmed());
+                    }
+                    eprintln!("\n  {} Print a specific schema: {}", "Usage:".bold(), "cs schema <command>".green());
+                    eprintln!();
+                    0
+                }
+            }
         }
     };
 

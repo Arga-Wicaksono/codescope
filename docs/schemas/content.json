@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs content output",
+  "description": "JSON output schema for the 'cs content' command. Returns lines matching a content search pattern.",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "query",
+    "source",
+    "count",
+    "elapsed_secs",
+    "results"
+  ],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "const": "codescope"
+    },
+    "version": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string",
+      "const": "content"
+    },
+    "query": {
+      "type": "string",
+      "description": "The search pattern."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["filesystem", "stdin", "web"],
+      "description": "Where the data was read from. 'stdin' when piping data."
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "elapsed_secs": {
+      "type": "number"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "path", "line", "content", "score"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "File name or '<stdin>' when reading from pipe."
+          },
+          "path": {
+            "type": "string",
+            "description": "Full file path or '<stdin>'."
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based line number."
+          },
+          "content": {
+            "type": "string",
+            "description": "The matched line content."
+          },
+          "score": {
+            "type": "integer",
+            "description": "Relevance score (fuzzy) or 100 (exact/regex)."
+          },
+          "language": {
+            "type": ["string", "null"],
+            "description": "Detected programming language, or null if unknown."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

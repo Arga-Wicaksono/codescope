@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cs across output",
+  "description": "JSON output schema for the 'cs across' command. Returns content matches found across multiple repositories.",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "command",
+    "query",
+    "source",
+    "count",
+    "elapsed_secs",
+    "results"
+  ],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "const": "codescope"
+    },
+    "version": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string",
+      "const": "across"
+    },
+    "query": {
+      "type": "string",
+      "description": "The search pattern."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["filesystem", "stdin", "web"]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of match results (not the number of repositories)."
+    },
+    "elapsed_secs": {
+      "type": "number"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "file", "path", "line", "content"],
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "Repository name (base directory name)."
+          },
+          "file": {
+            "type": "string",
+            "description": "File name within the repository."
+          },
+          "path": {
+            "type": "string",
+            "description": "Full path to the file."
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based line number."
+          },
+          "content": {
+            "type": "string",
+            "description": "The matched line content."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

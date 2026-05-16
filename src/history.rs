@@ -63,7 +63,25 @@ pub fn show_history(limit: Option<usize>, json: bool) -> Result<(), String> {
     let entries: Vec<_> = entries.into_iter().take(max).collect();
 
     if json {
-        println!("{}", serde_json::to_string_pretty(&entries).unwrap());
+        let results_json: Vec<serde_json::Value> = entries
+            .iter()
+            .map(|entry| {
+                serde_json::to_value(crate::output_schema::HistoryResultItem {
+                    timestamp: entry.timestamp.clone(),
+                    command: entry.command.clone(),
+                    pattern: entry.pattern.clone(),
+                    path: entry.path.clone(),
+                    results: entry.results,
+                    elapsed_secs: entry.elapsed_secs,
+                })
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope(
+            "history", ".", "filesystem", entries.len(), 0.0,
+            serde_json::json!(results_json),
+        );
+        crate::output_schema::print_json(&output);
     } else {
         if entries.is_empty() {
             eprintln!("{}", "No search history yet.".yellow());

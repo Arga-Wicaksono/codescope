@@ -22,6 +22,7 @@ pub mod types;
 pub mod utils;
 pub mod validate;
 pub mod output;
+pub mod output_schema;
 pub mod config;
 pub mod file_search;
 pub mod content_search;

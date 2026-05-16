@@ -383,6 +383,13 @@ pub enum Commands {
 
     /// Show configuration file path and current config
     Config,
+
+    /// Print JSON output schema for a command (for AI integration and documentation)
+    Schema {
+        /// Command name to show schema for (file, content, web, where, stats, recent, across, open, explain, history)
+        #[arg(value_name = "COMMAND")]
+        command: Option<String>,
+    },
 }
 
 /// Supported shell names for completion generation.

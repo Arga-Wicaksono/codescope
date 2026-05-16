@@ -66,7 +66,25 @@ pub fn search_content(
     let elapsed = timer.elapsed_secs();
 
     if json {
-        crate::output::print_content_results_json(&results, pattern, elapsed);
+        let results_json: Vec<serde_json::Value> = results
+            .iter()
+            .map(|(file, path, line, content, score)| {
+                serde_json::to_value(crate::output_schema::ContentResultItem {
+                    file: file.clone(),
+                    path: path.clone(),
+                    line: *line,
+                    content: content.clone(),
+                    score: *score,
+                    language: None,
+                })
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope(
+            "content", pattern, "filesystem", results.len(), elapsed,
+            serde_json::json!(results_json),
+        );
+        crate::output_schema::print_json(&output);
     } else {
         crate::output::print_content_results(&results, pattern, path, line_number, context, elapsed);
     }
@@ -90,6 +108,7 @@ pub fn search_content_replace(
 ) -> Result<bool, String> {
     validate::validate_pattern(pattern)?;
 
+    let timer = Timer::new();
     let files = collect_files(path, extensions, exclude, no_ignore, depth)?;
     let matcher = SkimMatcherV2::default();
     let regex_pattern = if case_insensitive {
@@ -145,23 +164,32 @@ pub fn search_content_replace(
         }
     }
 
+    let elapsed = timer.elapsed_secs();
+
     if json {
-        let json_output = serde_json::json!({
-            "tool": "codescope",
-            "version": env!("CARGO_PKG_VERSION"),
-            "pattern": pattern,
-            "replacement": replacement,
-            "dry_run": !write,
-            "changes": all_changes.iter().map(|(file, line, old, new)| {
-                serde_json::json!({
-                    "file": file,
-                    "line": line,
-                    "old": old,
-                    "new": new,
+        let results_json: Vec<serde_json::Value> = all_changes
+            .iter()
+            .map(|(file, line, old, new)| {
+                let file_name = std::path::Path::new(file)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| file.clone());
+                serde_json::to_value(crate::output_schema::ReplaceResultItem {
+                    file: file_name,
+                    path: file.clone(),
+                    line: *line,
+                    old: old.clone(),
+                    new_val: new.clone(),
                 })
-            }).collect::<Vec<_>>()
-        });
-        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope_with_extra(
+            "content", pattern, "filesystem", all_changes.len(), elapsed,
+            serde_json::json!(results_json),
+            serde_json::json!({"dry_run": !write}),
+        );
+        crate::output_schema::print_json(&output);
     } else {
         crate::output::print_replace_results(&all_changes);
     }
@@ -184,6 +212,7 @@ pub fn search_content_count(
 ) -> Result<bool, String> {
     validate::validate_pattern(pattern)?;
 
+    let timer = Timer::new();
     let files = collect_files(path, extensions, exclude, no_ignore, depth)?;
     let matcher = SkimMatcherV2::default();
     let regex_pattern = if case_insensitive {
@@ -222,17 +251,25 @@ pub fn search_content_count(
 
     counts.sort_by(|a, b| b.1.cmp(&a.1));
 
+    let elapsed = timer.elapsed_secs();
+
     if json {
-        let json_output = serde_json::json!({
-            "tool": "codescope",
-            "version": env!("CARGO_PKG_VERSION"),
-            "pattern": pattern,
-            "invert": invert,
-            "counts": counts.iter().map(|(file, count)| {
-                serde_json::json!({"file": file, "count": count})
-            }).collect::<Vec<_>>()
-        });
-        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+        let results_json: Vec<serde_json::Value> = counts
+            .iter()
+            .map(|(file, count)| {
+                serde_json::to_value(crate::output_schema::CountResultItem {
+                    file: file.clone(),
+                    path: file.clone(),
+                    count: *count,
+                })
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope(
+            "content", pattern, "filesystem", counts.len(), elapsed,
+            serde_json::json!(results_json),
+        );
+        crate::output_schema::print_json(&output);
     } else {
         crate::output::print_content_count(&counts);
     }
@@ -289,16 +326,25 @@ pub fn search_content_stdin(
     results.truncate(limit);
 
     if json {
-        let json_output = serde_json::json!({
-            "tool": "codescope",
-            "source": "stdin",
-            "pattern": pattern,
-            "count": results.len(),
-            "results": results.iter().map(|(file, _path, line, content, score)| {
-                serde_json::json!({"file": file, "line": line, "content": content, "score": score})
-            }).collect::<Vec<_>>()
-        });
-        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
+        let results_json: Vec<serde_json::Value> = results
+            .iter()
+            .map(|(file, path, line, content, score)| {
+                serde_json::to_value(crate::output_schema::ContentResultItem {
+                    file: file.clone(),
+                    path: path.clone(),
+                    line: *line,
+                    content: content.clone(),
+                    score: *score,
+                    language: None,
+                })
+                .unwrap()
+            })
+            .collect();
+        let output = crate::output_schema::envelope(
+            "content", pattern, "stdin", results.len(), 0.0,
+            serde_json::json!(results_json),
+        );
+        crate::output_schema::print_json(&output);
     } else {
         for (_file, _path, line, content, _score) in &results {
             if line_number {
