@@ -5,61 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2026-05-16
+## [1.3.0] - 2025-06-25
 
 ### Added
-- **TUI Mode** (`cs tui`) — Interactive terminal UI built with ratatui + crossterm
-  - File/symbol browser panel with fuzzy search
-  - Live code preview with line numbers and syntax-aware highlighting
-  - AI context sidebar with token estimation
-  - Vim-style keyboard navigation (j/k/g/G/n/N//o/s/c/f)
-  - Search mode cycling (files → content → symbols)
-  - Context panel toggle (c key)
-  - Help overlay (? key)
-  - Tab switching between Files and Symbols panels
-  - `--file-type` filter for language-specific browsing
-- **Plugin Architecture** — Trait-based plugin system with 9 hook points
-  - `Plugin` trait with pre/post hooks for search, symbols, and context
-  - `PluginManager` for discovery, loading, and lifecycle management
-  - Built-in plugins: `RecencyBoostPlugin`, `MarkdownFormatterPlugin`, `ExtraLanguagesPlugin`
-  - Plugin discovery from `~/.codescope/plugins/` and `.codescope/plugins/`
-  - Custom symbol extractors for Kotlin, Swift, Ruby, PHP via plugins
-  - Custom output formatters via plugins
-- **Rust SDK** (`codescope-sdk`) — Programmatic Rust interface
-  - `CodeScope` struct wrapping all CLI capabilities
-  - Typed result structs: `FileResult`, `ContentResult`, `SymbolResult`, `RepoStats`
-  - Methods: `search_files`, `search_content`, `find_symbols`, `stats`, `dependency_graph`, `impact`, `get_context`
-- **Python SDK** (`pip install .`) — Python interface for CodeScope
-  - `CodeScope` class wrapping the `cs` CLI binary via subprocess
-  - Dataclass result types with `to_dict()` serialization
-  - `DependencyGraph.to_dot()` for Graphviz export
-  - 13 methods matching all CLI commands
-- **Benchmark Suite** — Criterion-based benchmarks for all core operations
-  - `search_bench`: file search (fuzzy, extension filter, collect), content search (fuzzy, exact, regex, context, invert), stats
-  - `symbol_bench`: symbol search (find, refs, callers, list all), context engine (extract, pack, trace), graph (module, call graph, impact)
 
-### Changed
-- Version bump to 1.2.0
-- `tui` feature flag added to default features (ratatui + crossterm + textwrap)
-- Plugin module (`src/plugin.rs`) added to library exports
-- TUI module (`src/tui.rs`) conditionally compiled under `tui` feature
+#### New Commands (28 total, +10 from v1.0.0)
+- `cs symbol <name>` — Find symbol definitions across the codebase with file, line, kind, and language metadata
+- `cs refs <name>` — Find all references to a symbol across project files
+- `cs callers <name>` — Find callers of a specific function with call-site context
+- `cs symbols [path]` — List all symbols (functions, structs, traits, impls, etc.) in a file or directory
+- `cs context <topic>` — Multi-source context extraction with relevance ranking for LLM prompting
+- `cs pack <description>` — LLM-optimized prompt packing that gathers and ranks relevant code context
+- `cs trace <symbol>` — Execution flow tracing across function call chains
+- `cs graph` — Module dependency graph with three output formats: tree, flat list, and DOT
+- `cs impact <target>` — Impact analysis showing what depends on a target file or module
+- `cs semantic <query>` — TF-IDF semantic search with cosine similarity ranking
+- `cs rewrite <instruction>` — AI-powered code rewriting via LLM with targeted file/function scoping
+- `cs serve --mcp` — MCP (Model Context Protocol) server for AI tool integration
+- `cs serve --http` — HTTP API server exposing all CodeScope commands as REST endpoints
+- `cs cache stats|clear|cleanup` — Query result caching with TTL and LRU eviction
+- `cs lsp-bridge` — LSP bridge for editor integration supporting 6 request types: initialize, completion, gotoDefinition, references, hover, documentSymbol
+- `cs schema <command>` — Print the JSON output schema for any command (useful for pipeline scripting)
 
-### Architecture
-- 26 Rust modules (was 23): added `tui`, `plugin`, `graph`
-- Feature flags: `web-search`, `interactive`, `tui` (all default)
-- 104+ unit tests
-- `sdk/` directory with Rust SDK crate
-- `python/` directory with Python SDK package
-- `benches/` directory with criterion benchmarks
+#### Language & Architecture
+- **9 new modules**: `symbol`, `context`, `graph`, `impact`, `serve`, `semantic`, `cache`, `rewrite`, `lsp_bridge`
+- **28 Rust modules** total (was 18)
+- **10 language support** (was 7): Rust, Python, JS/TS, Go, Java/Kotlin, C, C++, Ruby, PHP, Swift
+- Extension-based language detection system to prevent cross-language false positives
+- TF-IDF semantic search engine with cosine similarity ranking
+- File-system based cache with TTL expiration and LRU eviction policy
+- LSP bridge architecture supporting 6 request types (initialize, completion, definition, references, hover, documentSymbol)
+- MCP (Model Context Protocol) server for AI agent integration
+- HTTP API server exposing all commands as REST endpoints
 
-## [1.1.0] - 2025-05-15
+### Fixed
+- **Inconsistent CLI flags**: Standardized `--limit`, `--json`, and `--exclude` flags across all 28 commands for uniform interface
+- **Language detection false positives**: `where_cmd.rs` now uses extension-based language matching instead of iterating all language patterns on all files, preventing C/CPP patterns from incorrectly matching `.rs` files and similar cross-language issues
+- **Error messages for unknown commands**: Added Levenshtein-distance-based command suggestion system — e.g., `cs flie` now suggests `cs file`
+- **Impact analysis UX**: Added helpful message when no dependents are found for a file, instead of silent empty output
 
-### Added
-- **Symbol Intelligence** — `cs symbol`, `cs refs`, `cs callers`, `cs symbols` commands
-- **Context Engine** — `cs context`, `cs pack`, `cs trace` commands
-- **Dependency Graph** — `cs graph`, `cs impact` commands with module import and call graph support
-- **MCP Protocol Server** — `cs serve --mcp` for Claude Desktop, Cursor, and AI agent integration
-- **Integration Scripts** — `cs-http-bridge.py`, `cs-bridge.sh`, `cs-mcp.sh`
+---
 
 ## [1.0.0] - 2025-05-12
 

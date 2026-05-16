@@ -653,15 +653,94 @@ pub enum Commands {
         json: bool,
     },
 
-    /// Open interactive terminal UI (TUI) for browsing and searching code
-    Tui {
-        /// Directory to browse (default: current directory)
+    /// Semantic search using TF-IDF (meaning-based, not just keyword)
+    Semantic {
+        /// Search query (natural language or code concepts)
+        query: String,
+
+        /// Directory to search (default: current directory)
         #[arg(short, long, default_value = ".")]
         path: String,
 
-        /// Filter by file type preset (rust, python, js, go, java, c, cpp)
+        #[arg(long, conflicts_with = "extension")]
+        file_type: Option<FileType>,
+
+        #[arg(short = 'e', long)]
+        extension: Option<String>,
+
         #[arg(long)]
-        file_type: Option<String>,
+        no_ignore: bool,
+
+        #[arg(long)]
+        depth: Option<usize>,
+
+        /// Maximum results (default: 20)
+        #[arg(short = 'l', long)]
+        limit: Option<usize>,
+
+        /// Output as JSON
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
+    /// Manage the query result cache
+    Cache {
+        /// Subcommand: stats, clear, cleanup
+        #[arg(subcommand)]
+        action: CacheAction,
+    },
+
+    /// AI-powered code rewrite using LLM (Ollama or OpenAI-compatible)
+    Rewrite {
+        /// Rewrite instruction (e.g. "refactor this function", "add error handling")
+        instruction: String,
+
+        /// Directory to work in (default: current directory)
+        #[arg(short, long, default_value = ".")]
+        path: String,
+
+        /// Target a specific symbol for rewriting
+        #[arg(short, long)]
+        symbol: Option<String>,
+
+        #[arg(long, conflicts_with = "extension")]
+        file_type: Option<FileType>,
+
+        #[arg(short = 'e', long)]
+        extension: Option<String>,
+
+        #[arg(long)]
+        no_ignore: bool,
+
+        #[arg(long)]
+        depth: Option<usize>,
+
+        /// LLM model name (default: from CODESCOPE_LLM_MODEL env or "llama3")
+        #[arg(short = 'm', long)]
+        model: Option<String>,
+
+        /// Token budget for context (default: 8000)
+        #[arg(short = 'b', long)]
+        budget: Option<usize>,
+
+        /// Dry run: show changes without applying them
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Actually write changes to files
+        #[arg(long)]
+        write: bool,
+
+        /// Output as JSON
+        #[arg(short = 'j', long)]
+        json: bool,
+    },
+
+    /// Start LSP bridge server for editor integration (Neovim, VS Code, etc.)
+    LspBridge {
+        /// TCP port to listen on (default: 8765)
+        #[arg(short = 'p', long, default_value_t = 8765)]
+        port: u16,
     },
 
     /// Print JSON output schema for a command (for AI integration and documentation)
@@ -670,6 +749,17 @@ pub enum Commands {
         #[arg(value_name = "COMMAND")]
         command: Option<String>,
     },
+}
+
+/// Cache management subcommands.
+#[derive(Subcommand, Debug)]
+pub enum CacheAction {
+    /// Show cache statistics (entries, size, hit rate)
+    Stats,
+    /// Clear all cached entries
+    Clear,
+    /// Remove expired entries
+    Cleanup,
 }
 
 /// Supported shell names for completion generation.

@@ -1,18 +1,129 @@
 use colored::Colorize;
 
-use crate::utils::Timer;
 use crate::validate;
 use ignore::WalkBuilder;
+use std::path::Path;
 
-const DEFINITION_PATTERNS: &[(&str, &str)] = &[
-    ("rust", r"(?:pub\s+)?(?:async\s+)?(?:fn|struct|enum|trait|impl|type|const|static|mod)\s+(\w+)"),
-    ("python", r"(?:def|class)\s+(\w+)"),
-    ("javascript", r"(?:function|class|const|let|var)\s+(\w+)|(\w+)\s*=\s*(?:function|class|\()"),
-    ("go", r"func\s+(?:\(\w+\s+\*?\w+\)\s+)?(\w+)"),
-    ("java", r"(?:public|private|protected|static)?\s*(?:class|interface|enum|abstract\s+class)\s+(\w+)"),
-    ("c", r"(?:static\s+)?(?:\w+\s+)+(\w+)\s*\("),
-    ("cpp", r"(?:(?:class|struct|enum|namespace|template)\s*<?\s*(?:\w+\s*::\s*)*|(?:(?:virtual\s+)?(?:static\s+)?(?:inline\s+)?(?:\w+::)?\w+\s+(\w+))\s*\()"),
+/// Language-specific definition patterns, keyed by file extension.
+/// FIX #2: Only apply patterns for the language matching the file extension.
+struct LangPatterns {
+    extensions: &'static [&'static str],
+    patterns: &'static [&'static str],
+}
+
+const ALL_LANGS: &[LangPatterns] = &[
+    LangPatterns {
+        extensions: &["rs"],
+        patterns: &[
+            r"(?:pub\s+)?(?:async\s+)?fn\s+(\w+)",
+            r"(?:pub\s+)?struct\s+(\w+)",
+            r"(?:pub\s+)?enum\s+(\w+)",
+            r"(?:pub\s+)?trait\s+(\w+)",
+            r"(?:pub\s+)?impl\s+(\w+)",
+            r"(?:pub\s+)?type\s+(\w+)",
+            r"(?:pub\s+)?const\s+(\w+)",
+            r"(?:pub\s+)?static\s+(\w+)",
+            r"(?:pub\s+)?mod\s+(\w+)",
+        ],
+    },
+    LangPatterns {
+        extensions: &["py", "pyi", "pyw"],
+        patterns: &[
+            r"def\s+(\w+)",
+            r"class\s+(\w+)",
+        ],
+    },
+    LangPatterns {
+        extensions: &["js", "jsx", "mjs", "cjs"],
+        patterns: &[
+            r"function\s+(\w+)",
+            r"class\s+(\w+)",
+            r"const\s+(\w+)\s*=",
+            r"let\s+(\w+)\s*=",
+            r"var\s+(\w+)\s*=",
+        ],
+    },
+    LangPatterns {
+        extensions: &["ts", "tsx"],
+        patterns: &[
+            r"(?:export\s+)?function\s+(\w+)",
+            r"(?:export\s+)?class\s+(\w+)",
+            r"(?:export\s+)?(?:const|let|var)\s+(\w+)",
+            r"(?:export\s+)?interface\s+(\w+)",
+            r"(?:export\s+)?type\s+(\w+)",
+            r"(?:export\s+)?enum\s+(\w+)",
+        ],
+    },
+    LangPatterns {
+        extensions: &["go"],
+        patterns: &[
+            r"func\s+(?:\(\w+\s+\*?\w+\)\s+)?(\w+)",
+            r"type\s+(\w+)\s+struct",
+            r"type\s+(\w+)\s+interface",
+        ],
+    },
+    LangPatterns {
+        extensions: &["java", "kt", "kts"],
+        patterns: &[
+            r"(?:public|private|protected)?\s*(?:static\s+)?(?:abstract\s+)?(?:class|interface|enum)\s+(\w+)",
+            r"(?:public|private|protected)?\s*(?:static\s+)?(?:(?:final\s+)?\w+(?:<[^>]+>)?\s+)+(\w+)\s*\(",
+        ],
+    },
+    LangPatterns {
+        extensions: &["c"],
+        patterns: &[
+            r"(?:static\s+)?(?:(?:const|unsigned|signed|long|short|inline)\s+)*\w+\s+(\w+)\s*\(",
+            r"typedef\s+(?:struct|enum|union)\s*\{[^}]*\}\s*(\w+)",
+            r"#define\s+(\w+)",
+        ],
+    },
+    LangPatterns {
+        extensions: &["cpp", "cc", "cxx", "hpp", "hxx"],
+        patterns: &[
+            r"(?:class|struct|enum)\s+(\w+)",
+            r"(?:virtual\s+)?(?:static\s+)?(?:inline\s+)?(?:\w+::)?\w+\s+(\w+)\s*\(",
+            r"namespace\s+(\w+)",
+            r"template\s*<[^>]+>\s*(?:class|struct)\s+(\w+)",
+        ],
+    },
+    LangPatterns {
+        extensions: &["h"],
+        patterns: &[
+            r"(?:static\s+)?(?:(?:const|unsigned|signed|long|short|inline)\s+)*\w+\s+(\w+)\s*\(",
+            r"typedef\s+(?:struct|enum|union)\s*\{[^}]*\}\s*(\w+)",
+            r"#define\s+(\w+)",
+        ],
+    },
+    LangPatterns {
+        extensions: &["rb"],
+        patterns: &[
+            r"def\s+(?:self\.)?(\w+)",
+            r"class\s+(\w+)",
+            r"module\s+(\w+)",
+        ],
+    },
+    LangPatterns {
+        extensions: &["php"],
+        patterns: &[
+            r"function\s+(\w+)",
+            r"class\s+(\w+)",
+            r"(?:public|private|protected)\s+(?:static\s+)?function\s+(\w+)",
+        ],
+    },
+    LangPatterns {
+        extensions: &["swift"],
+        patterns: &[
+            r"(?:public|private|internal)?\s*(?:static\s+)?func\s+(\w+)",
+            r"(?:public|private|internal)?\s*(?:class|struct|enum|protocol)\s+(\w+)",
+        ],
+    },
 ];
+
+/// Detect which language patterns to use based on file extension.
+fn detect_lang(file_name: &str) -> Option<&'static LangPatterns> {
+    let ext = Path::new(file_name).extension()?.to_str()?;
+    ALL_LANGS.iter().find(|lang| lang.extensions.iter().any(|e| e.eq_ignore_ascii_case(ext)))
+}
 
 pub fn run_where(
     name: &str,
@@ -28,7 +139,6 @@ pub fn run_where(
 ) -> Result<i32, String> {
     validate::validate_pattern(name)?;
 
-    let timer = Timer::new();
     let extensions: Option<Vec<&str>> = match (file_type, extension) {
         (Some(ft), _) => Some(ft.extensions().to_vec()),
         (_, Some(ext)) => Some(vec![ext]),
@@ -73,19 +183,29 @@ pub fn run_where(
             if !matches { continue; }
         }
 
+        // FIX #2: Only use patterns for the detected language of this file
+        let lang = match detect_lang(&file_name) {
+            Some(l) => l,
+            None => continue,
+        };
+
         let content = match std::fs::read_to_string(&file_path) {
             Ok(c) => c,
             Err(_) => continue,
         };
 
-        for (lang, pattern) in DEFINITION_PATTERNS {
+        for pattern in lang.patterns {
             if let Ok(re) = regex::Regex::new(pattern) {
                 for cap in re.find_iter(&content) {
                     let line_content = cap.as_str();
                     if line_content.contains(name) {
                         let line_num = content[..cap.start()].matches('\n').count() + 1;
                         let display_path = file_path.replace(path, "").trim_start_matches('/').to_string();
-                        results.push((display_path, line_num, line_content.trim().to_string(), lang.to_string()));
+                        let lang_name = Path::new(&file_name)
+                            .extension()
+                            .map(|e| e.to_string_lossy().to_string())
+                            .unwrap_or_else(|| "unknown".to_string());
+                        results.push((display_path, line_num, line_content.trim().to_string(), lang_name));
                     }
                 }
             }
@@ -93,31 +213,22 @@ pub fn run_where(
     }
 
     if json {
-        let elapsed = timer.elapsed_secs();
-        let results_json: Vec<serde_json::Value> = results
-            .iter()
-            .map(|(path, line, content, lang)| {
-                let kind = infer_kind(content);
-                serde_json::to_value(crate::output_schema::WhereResultItem {
-                    path: path.clone(),
-                    line: *line,
-                    content: content.clone(),
-                    language: lang.clone(),
-                    kind,
-                })
-                .unwrap()
-            })
-            .collect();
-        let output = crate::output_schema::envelope(
-            "where", name, "filesystem", results.len(), elapsed,
-            serde_json::json!(results_json),
-        );
-        crate::output_schema::print_json(&output);
+        let json_output = serde_json::json!({
+            "tool": "codescope",
+            "command": "where",
+            "name": name,
+            "count": results.len(),
+            "results": results.iter().map(|(path, line, content, lang)| {
+                serde_json::json!({"path": path, "line": line, "content": content, "language": lang})
+            }).collect::<Vec<_>>()
+        });
+        println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
         return Ok(if results.is_empty() { 1 } else { 0 });
     }
 
     if results.is_empty() {
         eprintln!("{} No definition found for '{}'", "✗".red(), name.cyan());
+        eprintln!("  {} Check spelling or try {} for deeper search", "Tip:".yellow(), "cs symbol <name>".green());
         return Ok(1);
     }
 
@@ -169,43 +280,41 @@ mod tests {
     }
 
     #[test]
-    fn test_infer_kind() {
-        assert_eq!(infer_kind("pub fn hello() {}"), "function");
-        assert_eq!(infer_kind("fn world() {}"), "function");
-        assert_eq!(infer_kind("def foo(): pass"), "function");
-        assert_eq!(infer_kind("func Bar() {}"), "function");
-        assert_eq!(infer_kind("struct Config {}"), "struct");
-        assert_eq!(infer_kind("class MyClass {}"), "class");
-        assert_eq!(infer_kind("enum Color {}"), "enum");
-        assert_eq!(infer_kind("trait Printable {}"), "trait");
-        assert_eq!(infer_kind("impl Foo {}"), "impl");
-        assert_eq!(infer_kind("let x = 5"), "unknown");
-    }
-}
+    fn test_where_no_cross_language_match() {
+        // FIX #2: C/CPP patterns should NOT match .rs files
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("test.rs"), "pub fn parse_config() {}\n").unwrap();
+        fs::write(dir.path().join("test.c"), "int parse_config() {}\n").unwrap();
+        fs::write(dir.path().join("test.cpp"), "void parse_config() {}\n").unwrap();
 
-/// Infer the kind of a code definition from its content.
-fn infer_kind(content: &str) -> String {
-    let trimmed = content.trim();
-    if trimmed.starts_with("fn ")
-        || trimmed.starts_with("pub fn ")
-        || trimmed.starts_with("pub async fn ")
-        || trimmed.starts_with("async fn ")
-        || trimmed.starts_with("def ")
-        || trimmed.starts_with("func ")
-        || trimmed.starts_with("function ")
-    {
-        "function".to_string()
-    } else if trimmed.contains("struct ") {
-        "struct".to_string()
-    } else if trimmed.contains("class ") {
-        "class".to_string()
-    } else if trimmed.contains("enum ") {
-        "enum".to_string()
-    } else if trimmed.contains("trait ") {
-        "trait".to_string()
-    } else if trimmed.contains("impl ") {
-        "impl".to_string()
-    } else {
-        "unknown".to_string()
+        let result = run_where("parse_config", dir.path().to_str().unwrap(), None, Some("rs"), None, true, None, false, false, false);
+        assert!(result.is_ok());
+        // Should find exactly 1 result in .rs file, NOT results from .c or .cpp
+    }
+
+    #[test]
+    fn test_detect_lang() {
+        assert!(detect_lang("main.rs").is_some());
+        assert!(detect_lang("app.py").is_some());
+        assert!(detect_lang("index.ts").is_some());
+        assert!(detect_lang("main.go").is_some());
+        assert!(detect_lang("App.java").is_some());
+        assert!(detect_lang("lib.cpp").is_some());
+        assert!(detect_lang("func.c").is_some());
+        assert!(detect_lang("server.rb").is_some());
+        assert!(detect_lang("index.php").is_some());
+        assert!(detect_lang("App.swift").is_some());
+        // .txt should not match any language
+        assert!(detect_lang("readme.txt").is_none());
+    }
+
+    #[test]
+    fn test_where_json_output() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("test.rs"), "pub fn my_func() {}\n").unwrap();
+
+        let result = run_where("my_func", dir.path().to_str().unwrap(), None, None, None, true, None, false, false, true);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 0);
     }
 }

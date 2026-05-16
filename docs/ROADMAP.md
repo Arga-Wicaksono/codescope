@@ -1,285 +1,153 @@
-# CodeScope Roadmap
+# CodeScope — Development Roadmap
 
-> **Vision:** Make repositories understandable instantly for humans and AI systems.
->
-> **Positioning:** Repository Intelligence Infrastructure for the AI Coding Era.
+> **Current Version:** v1.3.0 · **Status:** All phases complete
 
 ---
 
-## Core Principles
+## Phase 1 — Core Search Engine ✅
 
-- **Deterministic** — Same query, same results. Always.
-- **Blazing fast** — Rust-native, parallelized, built for large repos.
-- **Scriptable** — Structured JSON output for every command.
-- **AI-consumable** — Stable schemas, ranked data, context extraction.
-- **Local-first** — No cloud, no API keys, no network required.
-- **Zero dependencies** — One static binary, zero runtime dependencies.
+**Goal:** Fast file and content search as a unified CLI tool.
 
----
-
-## Phase 1 — Repositioning ✅
-
-**Status:** Complete
-
-Redefine CodeScope from "fast search CLI" to "Repository Intelligence Engine."
-
-- [x] Rewrite README with new positioning
-- [x] Update CLI branding (about, banner, help text)
-- [x] Update Cargo.toml metadata and keywords
-- [x] Add use cases for developers and AI agents
-- [x] Add architecture diagram
-- [x] Publish ROADMAP.md
+- [x] Fuzzy file search (`cs file`) with extension filtering and depth limits
+- [x] Content search (`cs content`) with 3 matching modes (fuzzy, exact, regex)
+- [x] Parallel processing via rayon for large codebases
+- [x] .gitignore-aware traversal (respects `.gitignore`, `.ignore`, global gitignore)
+- [x] Smart case sensitivity (case-insensitive unless pattern has uppercase)
+- [x] Hidden file support (`--hidden`)
+- [x] Line numbers (`-n`) and context lines (`-C`)
+- [x] JSON output (`-j`) for scripting and piping
+- [x] Replace mode (`--replace` / `--write`) for batch edits
+- [x] Count mode (`--count`) and invert match (`--invert`)
+- [x] Stdin pipe support (`cat file | cs content 'pattern'`)
+- [x] File type presets (`--type rust/python/js/web/cpp/go/java/config/doc/data/shell`)
 
 ---
 
-## Phase 2 — Structured Output (Priority: Critical) ✅
+## Phase 2 — Interactive Experience ✅
 
-**Status:** Complete
+**Goal:** Built-in interactive mode eliminating external tool dependencies.
 
-Make every command produce stable, parseable, AI-consumable JSON.
-
-### Deliverables
-- [x] Define JSON schema for `cs file` (file path, score, extension, size)
-- [x] Define JSON schema for `cs content` (file, line, column, context, match)
-- [x] Define JSON schema for `cs where` (symbol, file, line, kind, language)
-- [x] Define JSON schema for `cs stats` (language, files, lines, bytes)
-- [x] Define JSON schema for `cs across` (repo, file, line, match)
-- [x] Create `docs/schemas/` with JSON Schema files
-- [x] Add `--schema` flag to print JSON schema for any command
-- [x] Ensure zero-breaking-change contract (field names never change)
+- [x] Interactive fuzzy-select picker (`-I`) for file, content, web, and open commands
+- [x] Color output with auto TTY detection and `--no-color` override
+- [x] Shell completions (bash, zsh, fish, powershell, elvish)
+- [x] Config file (`~/.codescope.json`) for persistent defaults
+- [x] Configuration command (`cs config`) to display current config and path
+- [x] Branded ASCII art banner with quick-start command reference
+- [x] Levenshtein-distance command suggestions for typos (e.g., `cs flie` → `cs file`)
 
 ---
 
-## Phase 3 — Symbol Intelligence (Priority: High) ✅
+## Phase 3 — Symbol Intelligence ✅
 
-**Status:** Complete
+**Goal:** Navigate codebases by symbol, not by file.
 
-Repository understanding through code structure analysis.
+- [x] `cs where <name>` — Find function/class/struct definitions across languages
+- [x] `cs symbol <name>` — Find symbol definitions with file, line, kind, and language metadata
+- [x] `cs refs <name>` — Find all references to a symbol across project files
+- [x] `cs callers <name>` — Find callers of a specific function with call-site context
+- [x] `cs symbols [path]` — List all symbols in a file or directory
+- [x] **Extension-based language detection** supporting 10 languages (Rust, Python, JS/TS, Go, Java/Kotlin, C, C++, Ruby, PHP, Swift) — prevents cross-language false positives
 
-### Approach
-Use **enhanced regex patterns** for grammar-based symbol extraction across 12+ languages. Tree-sitter integration planned for future AST-level accuracy.
-
-### New Commands
-```bash
-# Symbol lookup — find where something is defined
-cs symbol UserService
-
-# Find all references to a symbol
-cs refs login_user
-
-# Find all callers of a function
-cs callers validate_token
-
-# List all symbols in a file/module
-cs symbols src/auth/mod.rs
-```
-
-### Deliverables
-- [x] Add `tree-sitter` dependency
-- [x] Implement symbol parser for Rust, Python, JS/TS (MVP)
-- [x] `cs symbol <name>` — Find definition with metadata
-- [x] `cs refs <name>` — Find all references
-- [x] `cs callers <name>` — Find call graph (who calls this)
-- [x] `cs symbols [path]` — List all symbols in scope
-- [x] Add `--type` filter for symbol kinds (function, class, struct, etc.)
-- [x] JSON output (`-j`) for all symbol commands
-
-### Why It Matters
-This is what separates CodeScope from ripgrep. Symbol intelligence enables:
-- **Architecture understanding** — See how modules connect
-- **AI context building** — AI needs relationships, not just text matches
-- **Refactoring safety** — Know every caller before changing a function
+> **v1.3.0 —** Fixed cross-language false positives: `where_cmd.rs` now uses extension-based language matching instead of iterating all language patterns on all files, preventing C/CPP patterns from incorrectly matching `.rs` files and similar issues.
 
 ---
 
-## Phase 4 — Context Engine (Priority: High) ✅
+## Phase 4 — Context Engine ✅
 
-**Status:** Complete
+**Goal:** Gather and rank relevant code context for LLM prompting.
 
-The killer feature. Intelligent context extraction for humans and AI.
+- [x] `cs context <topic>` — Multi-source context extraction with relevance ranking
+- [x] `cs pack <description>` — LLM-optimized prompt packing with ranked context
+- [x] `cs trace <symbol>` — Execution flow tracing across function call chains
+- [x] `cs schema <command>` — Print JSON output schema for any command
+- [x] **TF-IDF ranking** for semantic relevance scoring of context results
+- [x] **Token budget awareness** for LLM-optimized context packing
 
-### New Commands
-```bash
-# Extract relevant context for a topic
-cs context auth
-# → files, symbols, dependencies, summaries
-
-# Pack context for LLM prompts (token-efficient)
-cs pack "authentication bug"
-# → ranked code snippets, architecture summary, compressed context
-
-# Explain a code path
-cs trace login_user
-# → execution flow through functions
-```
-
-### Deliverables
-- [x] Context extraction engine (gathers files, symbols, dependencies)
-- [x] Ranking system (most referenced, recent, dependency weight)
-- [x] `cs context <topic>` — Multi-source context extraction
-- [x] `cs pack <description>` — LLM-optimized prompt packing
-- [x] Token counting and budget awareness (~4 chars/token)
-- [x] Architecture-aware ranking (entry points rank higher)
-- [x] JSON output with ranking scores
-
-### Why It Matters
-The #1 bottleneck in AI coding is **context selection**. Give an AI too much context = confused. Too little = wrong. CodeScope's context engine solves this with deterministic, ranked extraction.
+> **v1.3.0 —** Added TF-IDF-based relevance ranking to the context engine for smarter context extraction. Token budget awareness ensures context packs fit within LLM window limits. Execution flow tracing (`cs trace`) follows call chains across files.
 
 ---
 
-## Phase 5 — Dependency Graph (Priority: Medium)
+## Phase 5 — Dependency Graph ✅
 
-**Timeline:** 2–3 weeks
+**Goal:** Visualize and analyze project dependency structure.
 
-Repository graph intelligence for understanding relationships.
+- [x] `cs graph` — Module dependency graph with three output formats (tree, flat list, DOT)
+- [x] `cs impact <target>` — Impact analysis showing what depends on a target file or module
+- [x] **DOT format support** for generating Graphviz-compatible dependency visualizations
+- [x] **Helpful impact analysis messages** — informative output when no dependents are found, instead of silent empty output
 
-### New Commands
-```bash
-# Module dependency graph
-cs graph
-
-# Trace a function call chain
-cs trace login_user
-
-# Impact analysis — what would change if I modify this file?
-cs impact auth.rs
-```
-
-### Deliverables
-- [ ] Module dependency extraction
-- [ ] Function call graph construction
-- [ ] `cs graph` — ASCII/JSON dependency graph
-- [ ] `cs trace <symbol>` — Call chain visualization
-- [ ] `cs impact <file>` — Impact analysis (who depends on this)
-- [ ] DOT format export (for Graphviz)
-- [ ] JSON output for all graph commands
+> **v1.3.0 —** Dependency graph now supports DOT format output for Graphviz rendering. Impact analysis provides helpful messages when no dependents are found.
 
 ---
 
-## Phase 6 — TUI Mode (Priority: Medium) ✅
+## Phase 6 — Developer Workflows ✅
 
-**Status:** Complete
+**Goal:** Polish CLI experience for daily developer use.
 
-Modern terminal UX with live preview and AI context display.
-
-### Stack
-- `ratatui` — Rust TUI framework
-- `crossterm` — Terminal backend
-
-### Layout
-```
-┌─────────────────────────────────┐
-│ Search: auth handler           │
-├──────────────┬──────────────────┤
-│ Symbols/Files│   Preview         │
-│  > auth.rs   │   pub fn auth()  │
-│    user.rs   │     .token       │
-│    handler.rs│     .validate()  │
-├──────────────┤                  │
-│ AI Context   │                  │
-│ Score: 0.92  │                  │
-│ Tokens: 1.2k │                  │
-└──────────────┴──────────────────┘
-```
-
-### Deliverables
-- [x] TUI app with ratatui
-- [x] File/symbol browser panel
-- [x] Live code preview panel
-- [x] AI context sidebar (relevance score, token estimate)
-- [x] Keyboard navigation (vim-style)
-- [x] Split view for diff/comparison
+- [x] `cs open <pattern>` — Search files and open in `$EDITOR` with line support
+- [x] `cs recent [options]` — Find recently modified files with relative times (`--since`)
+- [x] `cs explain <pattern>` — Explain regex patterns in plain language
+- [x] `cs history` — Persistent search history with auto-rotation
+- [x] `cs across <pattern>` — Cross-repository search (`--repos`, `--workspace`, `--repos-file`)
+- [x] `cs stats [options]` — Per-language file and line count statistics
+- [x] Standardized `--limit`, `--json`, and `--exclude` flags across all 28 commands
 
 ---
 
-## Phase 7 — AI Agent Integration (Priority: High) ✅
+## Phase 7 — AI Agent Integration ✅
 
-**Status:** Complete
+**Goal:** Expose CodeScope capabilities to AI agents and editor workflows.
 
-Make CodeScope consumable by any AI system.
+- [x] `cs serve --mcp` — MCP (Model Context Protocol) server for AI tool integration
+- [x] `cs lsp-bridge` — LSP bridge for editor integration (6 request types: initialize, completion, gotoDefinition, references, hover, documentSymbol)
+- [x] **HTTP API server** (`cs serve --http`) exposing all CodeScope commands as REST endpoints
+- [x] **LSP bridge** supporting initialize, completion, definition, references, hover, and documentSymbol requests
 
-### MCP Support (Model Context Protocol)
-The #1 integration point. MCP lets Claude, Cursor, and any MCP-compatible agent use CodeScope as a tool.
-
-```
-AI Agent - MCP Server - CodeScope CLI
-AI Agent - HTTP API   - CodeScope CLI
-```
-
-### Deliverables
-- [x] MCP server implementation
-- [x] Register CodeScope tools: `search`, `context`, `symbol`, `trace`, `pack`
-- [x] Claude Desktop integration tested
-- [x] Cursor integration tested
-- [x] CLI API: `cs serve` — HTTP/unix socket API
-  - `GET /search?q=auth&type=rust`
-  - `GET /context?q=authentication&tokens=4000`
-  - `GET /symbol?name=UserService`
-  - `GET /trace?symbol=login_user`
-  - `GET /pack?description=auth+bug&budget=8000`
-- [x] `--llm` flag — Output optimized for token efficiency
-
-### Why This Matters
-Once MCP support lands, any AI agent can use CodeScope for repository understanding. This is the distribution flywheel — CodeScope becomes infrastructure that AI tools depend on.
+> **v1.3.0 —** HTTP API server allows any HTTP client to invoke CodeScope commands as REST endpoints. LSP bridge enables editor integration via the Language Server Protocol with 6 request types.
 
 ---
 
-## Phase 8 — Performance Excellence (Priority: Ongoing) ✅
+## Phase 8 — Performance Excellence ✅
 
-**Status:** Complete
+**Goal:** Optimize for speed and scalability on large codebases.
 
-Live up to the "blazing fast" promise with benchmarks.
+- [x] Parallel content search via rayon
+- [x] .gitignore-aware directory traversal (skip irrelevant paths)
+- [x] Extension-based filtering to avoid unnecessary file processing
+- [x] Release-optimized binary (~2 MB with LTO + strip)
+- [x] Zero runtime dependencies
+- [x] **TF-IDF semantic search** as an alternative search method with cosine similarity ranking
 
-### Deliverables
-- [x] Benchmark suite: `cs` vs `rg`, `grep`, `fzf`, `fd` (criterion)
-- [x] File search benchmarks (fuzzy, extension filter, collect)
-- [x] Content search benchmarks (fuzzy, exact, regex, context, invert)
-- [x] Symbol search benchmarks (find, refs, callers, list all)
-- [x] Context engine benchmarks (extract, pack, trace)
-- [x] Graph benchmarks (module graph, call graph, impact analysis)
-- [x] Stats benchmark
+> **v1.3.0 —** `cs semantic <query>` provides TF-IDF-based semantic search with cosine similarity ranking as an alternative to pattern-based search methods.
 
 ---
 
-## Phase 9 — Open Source Ecosystem (Priority: Low) ✅
+## Phase 9 — Open Source Ecosystem ✅
 
-**Status:** Complete
+**Goal:** Build community-ready open source infrastructure.
 
-### Deliverables
-- [x] Plugin architecture (trait-based, hook points, plugin manager)
-- [x] Built-in plugins: RecencyBoost, MarkdownFormatter, ExtraLanguages
-- [x] Rust SDK library (`codescope-sdk`)
-- [x] Python SDK (`pip install .`)
-- [ ] VS Code extension (via LSP bridge) — future
-- [ ] Neovim plugin — future
+- [x] MIT License
+- [x] Comprehensive README with installation, examples, and comparison table
+- [x] CONTRIBUTING.md with contribution guidelines
+- [x] CHANGELOG.md following Keep a Changelog format
+- [x] CI/CD via GitHub Actions (testing, clippy, formatting, cross-platform releases)
+- [x] Cross-platform releases (Linux, macOS Intel, macOS ARM, Windows)
+- [x] Feature flags for optional dependency management (`web-search`, `interactive`)
+- [x] **Cache system** (`cs cache stats|clear|cleanup`) with TTL expiration and LRU eviction
+- [x] **AI rewrite feature** (`cs rewrite <instruction>`) for LLM-powered code refactoring with targeted file/function scoping
 
----
-
-## What We Will NOT Build
-
-These are explicitly out of scope to maintain focus:
-
-| ❌ Don't Build | Why |
-|---------------|-----|
-| AI chatbot | Not our strength. Claude, GPT, etc. do this better. |
-| Code generation | Cursor, Copilot own this space. |
-| Copilot clone | We're infrastructure, not an assistant. |
-| Full AI agent | We serve agents, we don't become one. |
-| Cloud inference | Local-first is a core principle. |
-| IDE plugin (v1) | CLI-first. IDE integration comes via MCP/LSP later. |
+> **v1.3.0 —** File-system based cache with TTL expiration and LRU eviction policy for query result caching. AI rewrite command enables LLM-powered code refactoring with scoped file/function targeting.
 
 ---
 
-## Execution Priority
+## What's Next (Post-v1.3.0)
 
-```
-Phase 1  Repositioning          Done
-Phase 2  Structured Output      Done
-Phase 3  Symbol Intelligence     Done
-Phase 7  AI Agent Integration    Done
-Phase 4  Context Engine          Done
-Phase 5  Dependency Graph        Done
-Phase 6  TUI Mode                Done
-Phase 8  Performance             Done
-Phase 9  Ecosystem               Done
-```
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| TUI Mode | Interactive terminal UI with ratatui | Medium |
+| Plugin Architecture | Trait-based plugin system with hook points | Medium |
+| VS Code Extension | Via LSP bridge | Low |
+| Neovim Plugin | Native Lua plugin via LSP bridge | Low |
+| Tree-sitter Integration | AST-level symbol accuracy | Medium |
+| Incremental Indexing | Git-aware change detection for cache | Low |
+| Community Plugin Registry | Share and discover plugins | Low |

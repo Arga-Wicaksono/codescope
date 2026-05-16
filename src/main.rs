@@ -1,4 +1,4 @@
-//! CodeScope (`cs`) — A blazing fast Rust CLI search tool.
+//! CodeScope (`cs`) — Repository Intelligence Engine for AI & Developers.
 
 use std::process;
 
@@ -6,37 +6,37 @@ use clap::Parser;
 use colored::Colorize;
 
 mod across;
+mod cache;
 mod cli;
 mod config;
 mod content_search;
+mod context;
 mod explain;
 mod file_search;
+mod graph;
 mod history;
+mod impact;
+mod lsp_bridge;
 mod open;
 mod output;
-mod output_schema;
 mod recent;
+mod rewrite;
+mod semantic;
+mod serve;
 mod stats;
+mod symbol;
 mod types;
 mod utils;
 mod validate;
 mod where_cmd;
-mod symbol;
-mod context;
-mod graph;
-mod serve;
-mod plugin;
 
 #[cfg(feature = "interactive")]
 mod interactive;
 
-#[cfg(feature = "tui")]
-mod tui;
-
 #[cfg(feature = "web-search")]
 mod web_search;
 
-use cli::{Cli, Commands, ShellName};
+use cli::{Cli, Commands, ShellName, CacheAction};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -54,7 +54,7 @@ fn resolve_extensions(
 
 fn print_banner() {
     eprintln!(
-        "\n  {} {} — CodeScope\n",
+        "\n  {} {} — Repository Intelligence Engine\n",
         "cs".bold().cyan(),
         format!("v{}", VERSION).dimmed()
     );
@@ -78,40 +78,60 @@ fn print_branded_banner() {
         "Quick start:".bold(),
         "cs help".green()
     );
-    eprintln!("  {:<20} {}", "cs file <pattern>".green(), "Search files by name");
-    eprintln!("  {:<20} {}", "cs content <pattern>".green(), "Search inside files");
-    eprintln!("  {:<20} {}", "cs where <name>".green(), "Find definitions");
-    eprintln!("  {:<20} {}", "cs open <pattern>".green(), "Find + open in editor");
-    eprintln!("  {:<20} {}", "cs recent".green(), "Recently modified files");
-    eprintln!("  {:<20} {}", "cs stats".green(), "Repository statistics");
-    eprintln!("  {:<20} {}", "cs across <pattern>".green(), "Cross-repo search");
-    eprintln!("  {:<20} {}", "cs web <query>".green(), "Search the web");
+    eprintln!("  {:<24} {}", "cs file <pattern>".green(), "Search files by name");
+    eprintln!("  {:<24} {}", "cs content <pattern>".green(), "Search inside files");
+    eprintln!("  {:<24} {}", "cs symbol <name>".green(), "Find symbol definitions");
+    eprintln!("  {:<24} {}", "cs where <name>".green(), "Find definitions");
+    eprintln!("  {:<24} {}", "cs context <topic>".green(), "Extract context for AI");
+    eprintln!("  {:<24} {}", "cs graph".green(), "Dependency graph");
+    eprintln!("  {:<24} {}", "cs impact <target>".green(), "Impact analysis");
+    eprintln!("  {:<24} {}", "cs semantic <query>".green(), "Semantic (TF-IDF) search");
+    eprintln!("  {:<24} {}", "cs rewrite <instruction>".green(), "AI-powered rewrite");
+    eprintln!("  {:<24} {}", "cs serve --mcp".green(), "MCP server for AI agents");
     eprintln!();
 }
 
 #[allow(dead_code)]
 fn print_help() -> i32 {
-    println!("\n{}", "cs — CodeScope".bold().cyan());
+    println!("\n{}", "cs — Repository Intelligence Engine".bold().cyan());
     println!("{}\n", format!("Version {}", VERSION).dimmed());
 
-    println!("{}", "COMMANDS:".bold());
+    println!("{}", "SEARCH & NAVIGATION:".bold());
     println!("  {} <pattern>    Search files by name", "file".green());
     println!("  {} <pattern>    Search content inside files", "content".green());
-    println!("  {} <pattern>    Search files and open in editor", "open".green());
-    println!("  {} [options]    Show recently modified files", "recent".green());
-    println!("  {} <name>       Find where functions/classes are defined", "where".green());
-    println!("  {} <pattern>    Explain a regex pattern", "explain".green());
-    println!("  {} [options]    Show search history", "history".green());
+    println!("  {} <pattern>    Semantic search (TF-IDF)", "semantic".green());
+    println!("  {} <pattern>    Search the web", "web".green());
+    println!("  {} <pattern>    Find + open in editor", "open".green());
+    println!("  {} [options]    Recently modified files", "recent".green());
     println!("  {} <pattern>    Cross-repository search", "across".green());
-    println!("  {}              File statistics", "stats".green());
-    println!("  {} <shell>      Shell completions", "completions".green());
-    println!("  {}              Show configuration", "config".green());
-    println!();
 
-    println!("{}", "EXIT CODES:".bold());
-    println!("  0 = Results found");
-    println!("  1 = No results found");
-    println!("  2 = Error");
+    println!("\n{}", "SYMBOL INTELLIGENCE:".bold());
+    println!("  {} <name>       Find definitions", "where".green());
+    println!("  {} <name>       Find symbol with metadata", "symbol".green());
+    println!("  {} <name>       Find all references", "refs".green());
+    println!("  {} <name>       Find callers of a function", "callers".green());
+    println!("  {} [path]       List all symbols", "symbols".green());
+
+    println!("\n{}", "CONTEXT ENGINE:".bold());
+    println!("  {} <topic>      Extract context for AI", "context".green());
+    println!("  {} <desc>       Pack context for LLM prompts", "pack".green());
+    println!("  {} <symbol>     Trace execution flow", "trace".green());
+
+    println!("\n{}", "DEPENDENCY GRAPH:".bold());
+    println!("  {}              Module dependency graph", "graph".green());
+    println!("  {} <target>     Impact analysis", "impact".green());
+
+    println!("\n{}", "AI & INTEGRATION:".bold());
+    println!("  {} <instruction> AI-powered rewrite", "rewrite".green());
+    println!("  {} [--mcp|--http] MCP/HTTP server", "serve".green());
+    println!("  {} [port]       LSP bridge for editors", "lsp-bridge".green());
+
+    println!("\n{}", "DEVELOPER TOOLS:".bold());
+    println!("  {}              File statistics", "stats".green());
+    println!("  {} <pattern>    Explain regex pattern", "explain".green());
+    println!("  {} [options]    Search history", "history".green());
+    println!("  {}              Cache management", "cache".green());
+    println!("  {}              Configuration", "config".green());
     println!();
 
     0
@@ -160,9 +180,38 @@ fn print_config_info(cfg: &config::Config) -> i32 {
     0
 }
 
+/// Helper to handle command results with helpful error messages.
+fn handle_result(result: Result<i32, String>) -> i32 {
+    match result {
+        Ok(code) => code,
+        Err(e) => {
+            eprintln!("{} {}", "Error:".red().bold(), e);
+            2
+        }
+    }
+}
+
 fn main() {
     let cfg = config::load_config();
-    let cli = Cli::parse();
+    let cli = match Cli::try_parse() {
+        Ok(c) => c,
+        Err(e) => {
+            // FIX #3: Provide helpful suggestions on invalid commands
+            let err_str = e.to_string();
+            if err_str.contains("Unrecognized subcommand") {
+                // Extract the unknown command name
+                let unknown = err_str
+                    .lines()
+                    .find(|l| l.contains("Unrecognized subcommand"))
+                    .and_then(|l| l.split('"').nth(1))
+                    .unwrap_or("");
+                eprintln!("{}", validate::unknown_command_help(unknown));
+                process::exit(2);
+            }
+            eprintln!("{}", err_str);
+            process::exit(2);
+        }
+    };
 
     let no_color = cli.no_color || cfg.color == Some(false);
     output::configure_colors(no_color);
@@ -286,38 +335,25 @@ fn main() {
             let extensions = resolve_extensions(file_type, extension.as_deref());
             let extensions_ref = extensions.as_deref();
             let search_path = path.as_deref().unwrap_or(".");
-
-            match open::run_open(&pattern, search_path, effective_exclude, extensions_ref, hidden, effective_case, no_ignore, depth, interactive, line, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
+            handle_result(open::run_open(&pattern, search_path, effective_exclude, extensions_ref, hidden, effective_case, no_ignore, depth, interactive, line, json))
         }
 
         Commands::Recent {
             path, exclude, file_type, extension, hidden,
             no_ignore, since, limit, interactive, open, json,
         } => {
-            match recent::run_recent(&path, exclude.as_deref(), file_type, extension.as_deref(), hidden, no_ignore, since.as_deref(), limit, interactive, open, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
+            handle_result(recent::run_recent(&path, exclude.as_deref(), file_type, extension.as_deref(), hidden, no_ignore, since.as_deref(), limit, interactive, open, json))
         }
 
         Commands::Where {
             name, path, exclude, file_type, extension,
             no_ignore, depth, interactive, open, json,
         } => {
-            match where_cmd::run_where(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, interactive, open, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
+            handle_result(where_cmd::run_where(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, interactive, open, json))
         }
 
         Commands::Explain { pattern, json } => {
-            match explain::run_explain(&pattern, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
+            handle_result(explain::run_explain(&pattern, json))
         }
 
         Commands::History { limit, json } => {
@@ -359,10 +395,7 @@ fn main() {
             file_type, extension, regex, exact,
             limit, json, interactive,
         } => {
-            match across::run_across(&pattern, repos.as_deref(), workspace.as_deref(), repos_file.as_deref(), file_type, extension.as_deref(), regex, exact, limit, json, interactive) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
+            handle_result(across::run_across(&pattern, repos.as_deref(), workspace.as_deref(), repos_file.as_deref(), file_type, extension.as_deref(), regex, exact, limit, json, interactive))
         }
 
         Commands::Stats { path, file_type, extension, json } => {
@@ -372,6 +405,134 @@ fn main() {
             }
         }
 
+        // ── Symbol Intelligence ──
+
+        Commands::Symbol {
+            name, path, exclude, file_type, extension,
+            symbol_type, no_ignore, depth, json,
+        } => {
+            handle_result(symbol::run_symbol(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), symbol_type.as_deref(), no_ignore, depth, json))
+        }
+
+        Commands::Refs {
+            name, path, exclude, file_type, extension,
+            no_ignore, depth, json,
+        } => {
+            handle_result(symbol::run_refs(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, json))
+        }
+
+        Commands::Callers {
+            name, path, exclude, file_type, extension,
+            no_ignore, depth, json,
+        } => {
+            handle_result(symbol::run_callers(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, json))
+        }
+
+        Commands::Symbols {
+            path, exclude, file_type, extension,
+            symbol_type, no_ignore, depth, limit, json,
+        } => {
+            handle_result(symbol::run_symbols(&path, exclude.as_deref(), file_type, extension.as_deref(), symbol_type.as_deref(), no_ignore, depth, limit, json))
+        }
+
+        // ── Context Engine ──
+
+        Commands::Context {
+            topic, path, exclude, file_type, extension,
+            no_ignore, depth, max_items, json,
+        } => {
+            handle_result(context::run_context(&topic, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, max_items, json))
+        }
+
+        Commands::Pack {
+            description, path, exclude, file_type, extension,
+            no_ignore, depth, budget, json,
+        } => {
+            handle_result(context::run_pack(&description, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, budget, json))
+        }
+
+        Commands::Trace {
+            name, path, exclude, file_type, extension,
+            no_ignore, depth, max_depth, json,
+        } => {
+            handle_result(context::run_trace(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, max_depth, json))
+        }
+
+        // ── Dependency Graph ──
+
+        Commands::Graph {
+            path, graph_type, depth, format, json,
+        } => {
+            handle_result(graph::run_graph(&path, &graph_type, depth, &format, json))
+        }
+
+        Commands::Impact { target, path, json } => {
+            handle_result(impact::run_impact(&target, &path, json))
+        }
+
+        // ── Serve ──
+
+        Commands::Serve { mcp, http, port, path } => {
+            match serve::run_serve(mcp, http, port, path) {
+                Ok(_) => 0,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        // ── Semantic Search ──
+
+        Commands::Semantic {
+            query, path, file_type, extension,
+            no_ignore, depth, limit, json,
+        } => {
+            handle_result(semantic::run_semantic(&query, &path, file_type, extension.as_deref(), no_ignore, depth, limit, json))
+        }
+
+        // ── Cache ──
+
+        Commands::Cache { action } => {
+            let mgr = cache::CacheManager::new(24, 100);
+            match action {
+                CacheAction::Stats => {
+                    let s = mgr.stats();
+                    println!("{}", serde_json::to_string_pretty(&s).unwrap());
+                    0
+                }
+                CacheAction::Clear => {
+                    handle_result(mgr.clear().map(|_| 0))
+                }
+                CacheAction::Cleanup => {
+                    match mgr.cleanup() {
+                        Ok(n) => {
+                            eprintln!("{} Removed {} expired entries", "✓".green(), n);
+                            0
+                        }
+                        Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+                    }
+                }
+            }
+        }
+
+        // ── AI Rewrite ──
+
+        Commands::Rewrite {
+            instruction, path, symbol, file_type, extension,
+            no_ignore, depth, model, budget, dry_run, write, json,
+        } => {
+            handle_result(rewrite::run_rewrite(&instruction, &path, symbol.as_deref(), file_type, extension.as_deref(), no_ignore, depth, model.as_deref(), budget, dry_run, write, json))
+        }
+
+        // ── LSP Bridge ──
+
+        Commands::LspBridge { port } => {
+            match lsp_bridge::run_lsp_bridge(port) {
+                Ok(_) => 0,
+                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
+            }
+        }
+
+        // ── Misc ──
+
         Commands::Completions { shell } => print_completions(shell),
 
         Commands::Config => {
@@ -380,142 +541,18 @@ fn main() {
             0
         }
 
-        Commands::Symbol {
-            name, path, exclude, file_type, extension,
-            symbol_type, no_ignore, depth, json,
-        } => {
-            match symbol::run_symbol(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), symbol_type.as_deref(), no_ignore, depth, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
-        }
-
-        Commands::Refs {
-            name, path, exclude, file_type, extension,
-            no_ignore, depth, json,
-        } => {
-            match symbol::run_refs(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
-        }
-
-        Commands::Callers {
-            name, path, exclude, file_type, extension,
-            no_ignore, depth, json,
-        } => {
-            match symbol::run_callers(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
-        }
-
-        Commands::Symbols {
-            path, exclude, file_type, extension,
-            symbol_type, no_ignore, depth, limit, json,
-        } => {
-            match symbol::run_symbols(&path, exclude.as_deref(), file_type, extension.as_deref(), symbol_type.as_deref(), no_ignore, depth, limit, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
-        }
-
-        Commands::Context {
-            topic, path, exclude, file_type, extension,
-            no_ignore, depth, max_items, json,
-        } => {
-            match context::run_context(&topic, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, max_items, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
-        }
-
-        Commands::Pack {
-            description, path, exclude, file_type, extension,
-            no_ignore, depth, budget, json,
-        } => {
-            match context::run_pack(&description, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, budget, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
-        }
-
-        Commands::Trace {
-            name, path, exclude, file_type, extension,
-            no_ignore, depth, max_depth, json,
-        } => {
-            match context::run_trace(&name, &path, exclude.as_deref(), file_type, extension.as_deref(), no_ignore, depth, max_depth, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
-        }
-
-        Commands::Serve { mcp, http, port, path } => {
-            match serve::run_serve(mcp, http, port, &path) {
-                Ok(()) => 0,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
-        }
-
-        Commands::Graph {
-            path, graph_type, depth, format, json,
-        } => {
-            match graph::run_graph(&path, depth, &format, json, &graph_type) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
-        }
-
-        Commands::Impact { target, path, json } => {
-            match graph::run_impact(&path, &target, json) {
-                Ok(code) => code,
-                Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-            }
-        }
-
-        Commands::Tui { path, file_type } => {
-            #[cfg(feature = "tui")]
-            {
-                match tui::run_tui(&path, file_type.as_deref()) {
-                    Ok(()) => 0,
-                    Err(e) => { eprintln!("{} {}", "Error:".red().bold(), e); 2 }
-                }
-            }
-            #[cfg(not(feature = "tui"))]
-            {
-                eprintln!("{} TUI mode requires the 'tui' feature", "Error:".red().bold());
-                2
-            }
-        }
-
         Commands::Schema { command } => {
-            match command.as_deref() {
-                Some(cmd) => {
-                    match output_schema::get_schema(cmd) {
-                        Some(schema) => {
-                            output_schema::print_json(&schema);
-                            0
-                        }
-                        None => {
-                            eprintln!("{} Unknown command '{}'. Valid: file, content, content-replace, content-count, web, where, stats, recent, across, open, explain, history",
-                                "Error:".red().bold(), cmd);
-                            2
-                        }
-                    }
-                }
-                None => {
-                    // No command specified — list all available schemas
-                    eprintln!("{}", "CodeScope — Available JSON Schemas".bold().cyan());
-                    eprintln!("{}", "─".repeat(50).dimmed());
-                    let schemas = &["file", "content", "content-replace", "content-count", "web", "where", "stats", "recent", "across", "open", "explain", "history"];
-                    for s in schemas {
-                        eprintln!("  {} {}", format!("cs schema {}", s).green(), format!("(cs {} --json)", if *s == "content-replace" { "content --replace X" } else if *s == "content-count" { "content --count" } else { s }).dimmed());
-                    }
-                    eprintln!("\n  {} Print a specific schema: {}", "Usage:".bold(), "cs schema <command>".green());
-                    eprintln!();
-                    0
+            // Stub: schema command — for now just show available commands
+            if let Some(cmd) = command {
+                eprintln!("{} Schema for '{}' — use {} to see JSON output examples",
+                    ">>".cyan(), cmd.green(), format!("cs {} -j", cmd).yellow());
+            } else {
+                eprintln!("{}", "Available schemas:".bold());
+                for cmd in &["file", "content", "symbol", "refs", "callers", "symbols", "context", "pack", "trace", "graph", "impact", "stats", "semantic", "recent", "across", "where"] {
+                    eprintln!("  {}", cmd.green());
                 }
             }
+            0
         }
     };
 

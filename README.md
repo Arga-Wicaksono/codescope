@@ -1,23 +1,22 @@
 <p align="center">
-  <img src="assets/logo.png" alt="CodeScope logo" width="120" height="120">
+  <img src="assets/logo.png" alt="cs logo" width="120" height="120">
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Rust-1.70+-orange?style=flat-square&logo=rust&logoColor=white" alt="Rust">
-  <img src="https://img.shields.io/badge/version-1.2.0-blue?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.3.0-blue?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/commands-28-green?style=flat-square" alt="Commands">
+  <img src="https://img.shields.io/badge/modules-28-purple?style=flat-square" alt="Modules">
+  <img src="https://img.shields.io/badge/languages-10-cyan?style=flat-square" alt="Languages">
   <img src="https://img.shields.io/badge/license-MIT-yellow?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/tests-104%2B%20passed-brightgreen?style=flat-square" alt="Tests">
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform">
-  <img src="https://img.shields.io/badge/MCP-Protocol-8B5CF6?style=flat-square" alt="MCP">
-  <img src="https://img.shields.io/badge/TUI-ratatui-78B159?style=flat-square" alt="TUI">
-  <img src="https://img.shields.io/badge/plugins-9%20hooks-FF6B6B?style=flat-square" alt="Plugins">
 </p>
 
-<h1 align="center">CodeScope</h1>
+<h1 align="center">cs — CodeScope</h1>
 
 <p align="center">
-  <strong>Repository Intelligence Engine for AI & Developers</strong><br>
-  Make repositories understandable instantly — fast, deterministic, and AI-ready.
+  <strong>Repository Intelligence Engine for AI &amp; Developers.</strong><br>
+  28 commands. 28 modules. 10 languages. One binary. Zero runtime dependencies.
 </p>
 
 <p align="center">
@@ -25,139 +24,135 @@
 </p>
 
 <p align="center">
-  <a href="#why-codescope">Why</a> ·
-  <a href="#features">Features</a> ·
+  <a href="#why-codescope">Why cs?</a> ·
   <a href="#installation">Install</a> ·
   <a href="#quick-start">Quick Start</a> ·
-  <a href="#commands">Commands</a> ·
-  <a href="#tui-mode">TUI</a> ·
-  <a href="#plugin-architecture">Plugins</a> ·
-  <a href="#sdks">SDKs</a> ·
-  <a href="#ai-integration">AI Integration</a> ·
-  <a href="#architecture">Architecture</a> ·
-  <a href="#roadmap">Roadmap</a>
+  <a href="#search--navigation">Commands</a> ·
+  <a href="#matching-modes">Matching Modes</a> ·
+  <a href="#json-output">JSON</a> ·
+  <a href="#ai--integration">AI</a> ·
+  <a href="#configuration">Config</a> ·
+  <a href="#comparison">Comparison</a>
 </p>
 
 ---
 
 ## Why CodeScope?
 
-Large codebases are hard to understand — for humans navigating unfamiliar code, and for AI agents that need precise context to be effective. Existing tools solve pieces of the problem:
+Real development workflows look like this:
 
-| Tool | Does one thing well | But misses... |
-|------|---------------------|---------------|
-| `ripgrep` | Fast content search | No symbol intelligence, no context |
-| `fd` | File finding | No content, no definitions |
-| `ctags` | Symbol indexing | Stale, no ranking, not AI-ready |
-| `LSP` | Editor navigation | Not scriptable, editor-bound |
-| `Sourcegraph` | Code intelligence | Cloud-only, not local-first |
+```bash
+# Find a file, then pipe to interactive picker
+fd pattern | fzf
 
-**CodeScope bridges all of these gaps** in a single ~2 MB binary. File search, content search, symbol intelligence, dependency graphing, context extraction, interactive TUI browsing, extensible plugin system, and AI agent integration — all in one tool, local-first, zero runtime dependencies, deterministic results every time.
+# Search content, pipe to interactive picker
+rg "TODO" | fzf
 
-### Core Principles
+# Search symbols? Install tree-sitter, ctags, ast-grep...
+# Search the web? Open a browser.
+# Get context for AI? Manually copy-paste code.
+# Analyze dependencies? No standard tool.
+```
 
-| Principle | What it means |
-|-----------|---------------|
-| **Deterministic** | Same query, same results — always. No randomness, no approximation. |
-| **Blazing fast** | Rust-native with rayon parallelism. Built for large repos (100k+ files). Criterion-benchmarked. |
-| **Scriptable** | Every command outputs structured JSON (`-j`), perfect for pipes and automation. |
-| **AI-consumable** | Stable schemas, ranked results, context extraction built for LLM prompt packing. |
-| **Local-first** | No cloud, no API keys, no network. Everything runs on your machine. |
-| **Zero dependencies** | One static binary. No runtime, no JVM, no Node. Just `cs`. |
-| **Extensible** | Trait-based plugin system with 9 hook points, plus Rust and Python SDKs. |
+**CodeScope replaces all of that with one tool.** A single ~2 MB Rust binary that handles file search, content search, symbol intelligence, context extraction, dependency graphs, semantic search, AI rewrite, and more — with built-in interactive mode, JSON output for scripting, and zero runtime dependencies.
+
+| What you need | Before cs | With cs |
+|---|---|---|
+| Find files | `fd` + `fzf` | `cs file "pattern" -I` |
+| Search content | `rg` + `fzf` | `cs content "pattern" -I` |
+| Find definitions | `ctags` / tree-sitter | `cs where "fn_name"` |
+| Find references | Language server | `cs refs "symbol"` |
+| Find callers | Language server | `cs callers "fn_name"` |
+| Get AI context | Manual copy-paste | `cs context "topic"` |
+| Pack for LLM | Manual concatenation | `cs pack "description" -b 8000` |
+| Dependency graph | No standard tool | `cs graph --type modules` |
+| Impact analysis | No standard tool | `cs impact "utils.rs"` |
+| Semantic search | Embeddings model | `cs semantic "database connection"` |
+| AI rewrite | Copy-paste + manual | `cs rewrite "add error handling" --write` |
+| Cross-repo search | Manual loops | `cs across 'TODO' --workspace ~/projects` |
+| Search the web | Open browser | `cs web "rust tutorial" -l 5` |
 
 ---
 
-## Features
+## Core Principles
 
-CodeScope packs **24 commands** across seven capability pillars into a single binary.
+| Principle | Description |
+|---|---|
+| **Deterministic** | Same inputs always produce the same outputs — no randomness, no ML hallucination |
+| **Blazing fast** | Rust + rayon parallelism + smart case + .gitignore-aware walking |
+| **Scriptable** | Every command supports `-j` (JSON output) for piping and AI integration |
+| **AI-consumable** | `context`, `pack`, `trace` extract structured, token-budgeted code for LLM prompts |
+| **Local-first** | All analysis runs locally — no data leaves your machine (except `web` and `rewrite`) |
+| **Zero dependencies** | Single static binary, no runtime deps, no `node_modules`, no Python venv |
+| **Progressive** | v1.0 search → v1.1 symbols → v1.2 context → v1.3 AI — each release adds capability pillars |
 
-### 1. Search & Navigation
+---
 
-Find anything in your repository in milliseconds.
+## Commands at a Glance
 
-| Command | Description |
-|---------|-------------|
-| `cs file <pattern>` | Fuzzy file name search with extension filter, depth limit, interactive mode |
-| `cs content <pattern>` | Content search with fuzzy, exact, and regex modes. Rayon-parallelized |
-| `cs web <query>` | Search DuckDuckGo directly from the terminal |
-| `cs across <pattern>` | Cross-repository search across workspaces |
-| `cs open <pattern>` | Find and open files in `$EDITOR` at the right line |
-| `cs where <name>` | Jump to function/class/struct definitions across 7+ languages |
-| `cs recent [options]` | Find recently modified files with time-based filtering |
+### 1. Search & Navigation (7 commands)
 
-### 2. Symbol Intelligence
+| Command | Description | Example |
+|---|---|---|
+| `file` | Find files by name (fuzzy) | `cs file "Cargo"` |
+| `content` | Search inside files (3 modes) | `cs content "fn main" --regex` |
+| `web` | Search the web (DuckDuckGo) | `cs web "rust tutorial" -l 5` |
+| `across` | Cross-repository search | `cs across 'TODO' --workspace ~/projects` |
+| `open` | Find + open in `$EDITOR` | `cs open 'main' --line 42` |
+| `where` | Find definitions across languages | `cs where 'parse_config'` |
+| `recent` | Recently modified files | `cs recent --type rust --since '2h'` |
 
-Understand code structure without an IDE.
+### 2. Symbol Intelligence (4 commands)
 
-| Command | Description |
-|---------|-------------|
-| `cs symbol <name>` | Find symbol definitions with metadata (kind, language, file, line) |
-| `cs refs <name>` | Find all references to a symbol (excluding definitions) |
-| `cs callers <name>` | Find all functions that call a specific function (call graph) |
-| `cs symbols [path]` | List all symbols in a file or directory with kind filtering |
+| Command | Description | Example |
+|---|---|---|
+| `symbol` | Find definitions with metadata | `cs symbol "MyStruct" --symbol-type struct` |
+| `refs` | Find all references (excl. defs) | `cs refs "parse_config"` |
+| `callers` | Find functions that call a function | `cs callers "process_data"` |
+| `symbols` | List all symbols in file/dir | `cs symbols . --symbol-type function` |
 
-### 3. Context Engine
+### 3. Context Engine (3 commands)
 
-The killer feature for AI coding — intelligent context extraction.
+| Command | Description | Example |
+|---|---|---|
+| `context` | Extract context for a topic (files + symbols + snippets) | `cs context "authentication"` |
+| `pack` | Pack context into token-efficient LLM prompt | `cs pack "auth flow" -b 8000` |
+| `trace` | Trace execution flow through call graph | `cs trace "main" --max-depth 5` |
 
-| Command | Description |
-|---------|-------------|
-| `cs context <topic>` | Multi-source context extraction (files, symbols, dependencies) with ranking |
-| `cs pack <description>` | LLM-optimized prompt packing with token budget awareness |
-| `cs trace <symbol>` | Trace execution flow through function calls |
+### 4. Dependency Graph (2 commands)
 
-### 4. Dependency Graph
+| Command | Description | Example |
+|---|---|---|
+| `graph` | Build module or call dependency graph | `cs graph --type modules --format dot` |
+| `impact` | Analyze what depends on a file/module | `cs impact "utils.rs"` |
 
-See how your code connects.
+### 5. Developer Tools (6 commands)
 
-| Command | Description |
-|---------|-------------|
-| `cs graph` | Module import dependency graph (tree, flat, DOT, or JSON) |
-| `cs impact <target>` | Impact analysis — what depends on this file/symbol? |
+| Command | Description | Example |
+|---|---|---|
+| `stats` | File statistics per language | `cs stats --type rust --json` |
+| `explain` | Explain regex patterns in plain language | `cs explain '\s+\w+'` |
+| `history` | Show search history | `cs history -l 20 --json` |
+| `config` | Show configuration path and values | `cs config` |
+| `completions` | Generate shell completions | `cs completions bash` |
+| `schema` | Print JSON output schema for AI | `cs schema content` |
 
-### 5. Developer Tools
+### 6. AI & Integration (4 commands)
 
-Utilities that make daily development smoother.
+| Command | Description | Example |
+|---|---|---|
+| `serve` | MCP server (JSON-RPC) or HTTP API | `cs serve --mcp` / `cs serve --http -p 4567` |
+| `semantic` | TF-IDF semantic search with cosine similarity | `cs semantic "database connection pool"` |
+| `rewrite` | AI-powered code rewrite (Ollama / OpenAI) | `cs rewrite "add error handling" --write` |
+| `lsp-bridge` | LSP bridge for editor integration | `cs lsp-bridge --port 8765` |
 
-| Command | Description |
-|---------|-------------|
-| `cs stats` | Per-language file/line statistics with JSON output |
-| `cs explain <pattern>` | Explain regex patterns in plain language |
-| `cs history` | Persistent search history with auto-rotation |
-| `cs config` | Display current configuration and config file path |
-| `cs completions` | Shell completions for bash, zsh, fish, powershell, elvish |
-| `cs schema` | Print JSON output schema for any command |
+### 7. Caching (1 command, 3 sub-commands)
 
-### 6. Interactive TUI
-
-Full terminal UI for browsing and searching code interactively.
-
-| Command | Description |
-|---------|-------------|
-| `cs tui` | Interactive terminal UI with file browser, code preview, and AI context sidebar |
-
-See the [TUI Mode](#tui-mode) section for full details.
-
-### 7. AI Agent Integration
-
-| Command | Description |
-|---------|-------------|
-| `cs serve --mcp` | MCP (Model Context Protocol) server via stdio/JSON-RPC 2.0 |
-| `cs serve` | HTTP API for programmatic access |
-
-### 8. Plugin Architecture
-
-Extensible via a trait-based plugin system with 9 hook points.
-
-| Feature | Description |
-|---------|-------------|
-| `Plugin` trait | Pre/post hooks for search, symbols, and context operations |
-| `PluginManager` | Discovery, loading, and lifecycle management |
-| Built-in plugins | RecencyBoost, MarkdownFormatter, ExtraLanguages |
-| Plugin discovery | `~/.codescope/plugins/` and `.codescope/plugins/` |
-
-See the [Plugin Architecture](#plugin-architecture) section for full details.
+| Command | Description | Example |
+|---|---|---|
+| `cache stats` | Show cache entries, size, hit rate | `cs cache stats` |
+| `cache clear` | Clear all cached entries | `cs cache clear` |
+| `cache cleanup` | Remove expired entries | `cs cache cleanup` |
 
 ---
 
@@ -193,32 +188,14 @@ cargo install --path .
 ### Build variants
 
 ```bash
-# Full build (web search + interactive + TUI) — default
+# Full build (web search + interactive) — default
 cargo build --release
 
 # Without web search (smaller binary)
-cargo build --release --no-default-features --features interactive,tui
-
-# Without TUI (no ratatui/crossterm)
-cargo build --release --no-default-features --features web-search,interactive
+cargo build --release --no-default-features --features interactive
 
 # Minimal: file + content only (smallest binary)
 cargo build --release --no-default-features
-```
-
-### Python SDK
-
-```bash
-cd codescope/python
-pip install .
-```
-
-```python
-from codescope import CodeScope
-cs = CodeScope()
-files = cs.search_files("config", extension="toml")
-stats = cs.stats()
-print(stats.to_dict())
 ```
 
 ---
@@ -226,49 +203,62 @@ print(stats.to_dict())
 ## Quick Start
 
 ```bash
-# Understand a project instantly
-cs stats                            # Project composition by language
-cs file "config" -I                 # Fuzzy-find config files interactively
-cs content "fn main" -n -C 2        # Search with context
+# ── Search & Navigation ──────────────────────────────────────────
+cs file "Cargo"                       # Find files by name
+cs content "fn main"                   # Fuzzy content search
+cs content 'TODO|FIXME' --regex        # Regex content search
+cs content "config" -x                 # Exact substring match
+cs web "rust tutorial" -l 5            # Web search
+cs across 'TODO' --workspace ~/projects  # Cross-repo search
+cs open 'main' --line 42               # Find + open in editor
+cs open 'TODO' -I                      # Interactive select, then open
+cs where 'parse_config'                # Find definitions
+cs where 'MyStruct' --open             # Find + open at definition
+cs recent --type rust --since '2h'     # Recently modified files
 
-# Navigate code like a pro
-cs where "parse_config"             # Jump to definition
-cs symbol "UserService"             # Find symbol with metadata
-cs open "main" --line 42            # Open file at exact line
-cs recent --type rust --since '2h'  # What changed recently?
+# ── Symbol Intelligence ─────────────────────────────────────────
+cs symbol "MyStruct"                   # Find symbol with metadata
+cs symbol "handler" --symbol-type function  # Filter by kind
+cs refs "parse_config"                 # Find all references
+cs callers "process_data"              # Find callers of a function
+cs symbols . --symbol-type function -l 20   # List all functions
 
-# Understand relationships
-cs graph                            # Module dependency graph
-cs impact utils.rs                  # What depends on utils.rs?
-cs callers "validate_token"         # Who calls this function?
-cs refs "UserService"               # Where is this symbol used?
+# ── Context Engine ──────────────────────────────────────────────
+cs context "authentication"            # Extract context for AI
+cs pack "auth flow" -b 8000            # Pack for LLM prompt
+cs trace "main" --max-depth 5          # Trace execution flow
 
-# Get AI-ready structured output
-cs context auth                     # Multi-source context for "auth"
-cs pack "authentication bug"        # Token-efficient prompt packing
-cs trace "login_user"               # Execution flow tracing
-cs content "auth" --type rust -j    # JSON output for scripts/AI
+# ── Dependency Graph ────────────────────────────────────────────
+cs graph                              # Module dependency graph (tree)
+cs graph --type calls --format dot     # Call graph in Graphviz DOT
+cs graph -f json -j                    # Graph as JSON
+cs impact "utils.rs"                   # What depends on this?
 
-# Search across repositories
-cs across "TODO" --workspace ~/projects   # Find across all repos
-cs explain '\s+\w+'                      # Understand regex patterns
-cs web "rust async tutorial" -l 5         # Web search from terminal
+# ── Developer Tools ─────────────────────────────────────────────
+cs stats --type rust                   # Rust file statistics
+cs explain '\s+\w+'                    # Explain regex
+cs history -l 20                       # Search history
+cs config                              # Show configuration
+cs completions bash | sudo tee /usr/share/bash-completion/completions/cs
 
-# Interactive TUI browsing
-cs tui                               # Full terminal UI
-cs tui --file-type rust               # Filter to Rust files only
+# ── AI & Integration ────────────────────────────────────────────
+cs serve --mcp                         # MCP server for AI agents
+cs serve --http -p 4567                # HTTP API server
+cs semantic "database connection pool"  # TF-IDF semantic search
+cs rewrite "add error handling" --write # AI-powered rewrite
+cs lsp-bridge --port 8765              # LSP bridge for editors
 
-# Extend with plugins
-# Place .so/.dylib plugins in ~/.codescope/plugins/
+# ── Caching ─────────────────────────────────────────────────────
+cs cache stats                         # Cache statistics
+cs cache clear                         # Clear cache
+cs cache cleanup                       # Remove expired entries
 ```
 
 ---
 
-## Commands
+## Detailed Command Documentation
 
-### Search & Navigation
-
-#### `cs file <pattern>` — File Search
+### `cs file <pattern>` — File Search
 
 Find files by name using fuzzy matching (SkimMatcherV2).
 
@@ -277,386 +267,315 @@ cs file "Cargo"           # Basic fuzzy search
 cs file "main" -e rs      # Filter by extension
 cs file "test" --depth 2  # Limit recursion depth
 cs file "config" -I       # Interactive selection
-cs file "config" -j       # JSON output (AI-ready)
+cs file "config" -j       # JSON output
+cs file "lib" --type rust # Use file type preset
+cs file "env" --hidden    # Include hidden files
 ```
 
-#### `cs content <pattern>` — Content Search
+### `cs content <pattern>` — Content Search
 
 Search text inside files with three matching modes. Uses **rayon** for parallel processing.
 
 ```bash
-cs content "function"         # Fuzzy search (default)
-cs content "fn\s+\w+" --regex # Regex search
-cs content "config" -x        # Exact substring match
-cs content "TODO" -n          # Show line numbers
-cs content "error" -C 3       # 3 context lines
-cs content "TODO" --count     # Per-file match counts
-cs content "fn" --invert      # Non-matching lines
-cs content "auth" -j          # Structured JSON output
-cs content "old" --replace "new" --write  # Find and replace
+cs content "function"           # Fuzzy search (default)
+cs content "fn\s+\w+" --regex  # Regex search
+cs content "config" -x          # Exact substring match
+cs content "TODO" -n            # Show line numbers
+cs content "error" -C 3         # 3 context lines
+cs content "TODO" --count       # Per-file match counts
+cs content "fn" --invert        # Non-matching lines
+cs content "old" --replace "new" -x --write  # Replace in files
+cat file | cs content "pattern" # Search piped stdin
 ```
 
-#### `cs where <name>` — Find Definitions
+### `cs web <query>` — Web Search *(requires `web-search` feature)*
 
 ```bash
-cs where 'parse_config'   # Search all source files
-cs where 'MyStruct' --type rust
-cs where 'handler' --open  # Find + open at definition line
-cs where 'Handler' -j      # JSON output for AI consumption
+cs web "rust tutorial" -l 5        # Top 5 results
+cs web "async python" --timeout 15 # Custom timeout
+cs web "web assembly" -I           # Interactive select, then open
 ```
 
-Supports: Rust, Python, JS/TS, Go, Java/Kotlin, C/C++.
+### `cs across <pattern>` — Cross-Repository Search
 
-#### `cs open <pattern>` — Search + Open in Editor
+```bash
+cs across 'TODO' --workspace ~/projects        # Auto-discover git repos
+cs across 'error' --repos /a/repo1,/b/repo2    # Explicit repos
+cs across 'bug' --repos_file ~/repos.txt       # Read repos from file
+cs across 'API' --regex --type rust            # Regex + type filter
+```
+
+### `cs open <pattern>` — Search + Open in Editor
 
 ```bash
 cs open 'main'             # Find and open best match
-cs open 'config' --line 42  # Open at specific line
-cs open 'TODO' -I           # Interactive select, then open
+cs open 'config' --line 42 # Open at specific line
+cs open 'TODO' -I          # Interactive select, then open
 ```
 
-#### `cs recent [options]` — Recently Modified Files
+### `cs where <name>` — Find Definitions
+
+```bash
+cs where 'parse_config'       # Search all source files
+cs where 'MyStruct' --type rust
+cs where 'handler' --open      # Find + open at definition line
+```
+
+Supports: Rust, Python, JS/TS, Go, Java/Kotlin, C/C++, Ruby, PHP, Swift.
+
+### `cs recent [options]` — Recently Modified Files
 
 ```bash
 cs recent                  # 20 most recent files
 cs recent --type rust      # Rust files only
 cs recent --since '2h'     # Modified in last 2 hours
 cs recent --open           # Open most recent in editor
+cs recent -I               # Interactive selection
 ```
 
-#### `cs across <pattern>` — Cross-Repository Search
+---
+
+### `cs symbol <name>` — Find Symbol Definitions
+
+Find symbol definitions with rich metadata: kind, language, file path, line number.
 
 ```bash
-cs across 'TODO' --workspace ~/projects    # Auto-discover git repos
-cs across 'error' --repos /a/repo1,/b/repo2
+cs symbol "search_files"                    # Find any symbol
+cs symbol "Config" --symbol-type struct     # Filter by kind
+cs symbol "handler" --type rust -j          # JSON output
 ```
 
-#### `cs web <query>` — Web Search
+Supported kinds: `function`, `method`, `struct`, `class`, `enum`, `trait`, `interface`, `constant`, `type`, `module`. Aliases: `fn`→`function`, `mod`→`module`, `const`→`constant`, etc.
+
+### `cs refs <name>` — Find References
+
+Find all references to a symbol, **excluding definitions and comments**.
 
 ```bash
-cs web "rust tutorial" -l 5   # Search DuckDuckGo from terminal
-cs web "async await" -j        # JSON output
+cs refs "Config"           # All usages of Config
+cs refs "helper" --type py # Python files only
 ```
 
-### Symbol Intelligence
+### `cs callers <name>` — Find Callers
 
-#### `cs symbol <name>` — Find Symbol Definitions
+Find all functions that call a specific function. Reports the enclosing function name.
 
 ```bash
-cs symbol UserService              # Find symbol definition
-cs symbol authenticate --type rust  # Filter by language
-cs symbol login -j                 # JSON with metadata
-cs symbol Handler --kind function  # Filter by kind
+cs callers "process_data"    # Who calls process_data?
+cs callers "validate" -j     # JSON output with caller names
 ```
 
-Kinds: `function`, `method`, `class`, `struct`, `trait`, `interface`, `enum`, `module`, `constant`, `type`.
+### `cs symbols [path]` — List All Symbols
 
-#### `cs refs <name>` — Find References
+List all symbol definitions in a file or directory.
 
 ```bash
-cs refs login_user           # All references (not definitions)
-cs refs UserService -n       # With line numbers
-cs refs authenticate -j      # Structured JSON
+cs symbols . --type rust                  # All Rust symbols
+cs symbols . --symbol-type function -l 20 # Top 20 functions
+cs symbols src/lib.rs -j                 # Single file, JSON
 ```
 
-#### `cs callers <name>` — Find Callers
+---
+
+### `cs context <topic>` — Extract Context
+
+Multi-source context extraction with ranking: file name matches > content density > symbol definitions.
 
 ```bash
-cs callers validate_token     # Who calls this function?
-cs callers parse_config -n    # With line numbers and context
-cs callers handle_request -j  # JSON output
+cs context "authentication"            # Files + lines + symbols about auth
+cs context "Config" --type rust        # Rust files only
+cs context "handler" -l 30 --json      # JSON with scores
 ```
 
-#### `cs symbols [path]` — List All Symbols
+Output includes `type` (file/content/symbol), `path`, `line`, `content`, `score`, and `tokens`.
+
+### `cs pack <description>` — Pack for LLM
+
+Token-budgeted context packing optimized for LLM prompts.
 
 ```bash
-cs symbols                    # All symbols in current directory
-cs symbols src/auth/mod.rs    # Symbols in a specific file
-cs symbols --kind struct      # Only structs and classes
-cs symbols --type rust -j     # Rust symbols as JSON
+cs pack "authentication flow" -b 8000    # Pack up to 8000 tokens
+cs pack "error handling" --type rust -j  # JSON output
 ```
 
-### Context Engine
+ packing order: exact filename matches → symbol definitions → content snippets.
 
-#### `cs context <topic>` — Multi-Source Context
+### `cs trace <name>` — Trace Execution Flow
 
-Extract ranked context from files, symbols, and dependencies.
+Trace function call chains recursively up to a configurable depth.
 
 ```bash
-cs context auth               # Context for "auth" topic
-cs context "error handling"   # Multi-word topic
-cs context auth --max-items 30  # Control result count
-cs context auth -j            # JSON with ranking scores
+cs trace "main" --max-depth 5    # Trace from main
+cs trace "process" --depth 3     # Limit directory depth + trace depth
+cs trace "main" -j              # JSON tree output
 ```
 
-#### `cs pack <description>` — LLM Prompt Packing
+Builds a call tree using a global symbol table and brace-matching body extraction.
 
-Pack context into a token-efficient format optimized for LLM prompts.
+---
+
+### `cs graph` — Dependency Graph
+
+Build module import or function-call dependency graphs. Supports Rust, Python, JS/TS, Go, Java/Kotlin.
 
 ```bash
-cs pack "authentication bug"          # Pack context for this description
-cs pack "login flow" --budget 8000    # Token budget control
-cs pack "user service" -j             # JSON output
+cs graph                              # Module graph (tree format)
+cs graph --type calls                 # Function call graph
+cs graph --format dot                 # Graphviz DOT output
+cs graph --format flat                # Flat edge list
+cs graph -f json -j                   # JSON output
+cs graph --type modules --depth 2     # Limit graph depth
 ```
 
-#### `cs trace <symbol>` — Execution Flow Tracing
+Pipe DOT output to Graphviz:
+```bash
+cs graph --type modules --format dot | dot -Tpng -o deps.png
+```
 
-Trace the execution flow through function calls.
+### `cs impact <target>` — Impact Analysis
+
+Find all files that depend on a given file or module (directly and transitively).
 
 ```bash
-cs trace login_user          # Trace call chain
-cs trace handle_request -j   # JSON output with flow
+cs impact "utils.rs"       # Who depends on utils.rs?
+cs impact "utils" -j       # JSON output
+cs impact "config.py"      # Python modules too
 ```
 
-### Dependency Graph
+Reports direct dependents (1st degree) and indirect dependents (2nd degree+) separately.
 
-#### `cs graph` — Dependency Graph
+---
 
-Build and display module import or function call graphs.
+### `cs serve` — MCP + HTTP Server
+
+Expose CodeScope capabilities as a server for AI agents and external tools.
+
+**MCP Server** (JSON-RPC 2.0 over stdin/stdout):
+```bash
+cs serve --mcp
+```
+
+Tools exposed: `search_files`, `search_content`, `find_symbol`, `find_references`, `find_callers`, `list_symbols`, `get_context`, `pack_context`, `trace_symbol`, `repo_stats`.
+
+**HTTP API Server**:
+```bash
+cs serve --http -p 4567
+```
+
+Zero-dependency TCP-based HTTP server. Query: `GET /api/search?pattern=main&limit=10`.
+
+### `cs semantic <query>` — Semantic Search
+
+TF-IDF-based semantic search with cosine similarity — no external ML library needed.
 
 ```bash
-cs graph                     # Module import graph (tree view)
-cs graph --type calls        # Function call graph
-cs graph --format flat       # Flat edge list
-cs graph --format dot        # Graphviz DOT output
-cs graph -j                  # JSON with nodes and edges
-cs graph --depth 3           # Limit recursion depth
+cs semantic "database connection pool"    # Natural language query
+cs semantic "error handling" --type rust # Filter by language
+cs semantic "auth" -l 10 -j              # JSON with similarity scores
 ```
 
-Pipes directly into Graphviz for visualization:
+**How it works:**
+1. Tokenize all files (strip punctuation, filter stop words including common keywords like `fn`, `def`, `return`)
+2. Compute TF-IDF vectors per document and line
+3. Rank by cosine similarity between query and document vectors
+4. Show color-coded scores: green (≥50%), yellow (≥20%), dimmed (<20%)
+
+### `cs rewrite <instruction>` — AI-Powered Code Rewrite
+
+Combines context extraction with LLM API calls to rewrite code.
 
 ```bash
-cs graph --format dot | dot -Tpng -o graph.png
-cs graph --format dot | dot -Tsvg -o graph.svg
+cs rewrite "add error handling" --type rust --write     # Apply changes
+cs rewrite "refactor this function" --dry-run            # Preview only
+cs rewrite "optimize" --symbol "process_data" -j         # Target a symbol
+cs rewrite "add docs" -m codellama --budget 50           # Custom model + budget
 ```
 
-#### `cs impact <target>` — Impact Analysis
+**Environment variables:**
+| Variable | Default | Description |
+|---|---|---|
+| `CODESCOPE_LLM_MODEL` | `llama3` | LLM model name |
+| `CODESCOPE_LLM_API` | `http://localhost:11434` | API base URL |
+| `CODESCOPE_LLM_PROVIDER` | `ollama` | `ollama` or `openai` |
 
-Analyze what would be affected if you modify a file or module.
+Uses Ollama's `/api/generate` endpoint or OpenAI-compatible `/chat/completions`.
+
+### `cs lsp-bridge` — LSP Bridge
+
+Lightweight LSP protocol server for editor integration (Neovim, VS Code, etc.).
 
 ```bash
-cs impact utils.rs           # What depends on utils.rs?
-cs impact auth               # Impact on "auth" module
-cs impact "src/lib.rs" -j    # JSON output
+cs lsp-bridge --port 8765
 ```
 
-### Developer Tools
+**Supported LSP requests:**
+| Request | Maps to |
+|---|---|
+| `initialize` | Server capabilities |
+| `textDocument/completion` | `cs content` (symbol completions) |
+| `textDocument/definition` | `cs where` (go-to-definition) |
+| `textDocument/references` | `cs content` (find-references) |
+| `textDocument/hover` | `cs where` + `cs content` (hover info) |
+| `textDocument/documentSymbol` | `cs where` (file symbols) |
+| `shutdown` | Clean shutdown |
 
-#### `cs stats [options]` — File Statistics
+---
+
+### `cs stats` — File Statistics
 
 ```bash
 cs stats                   # Current directory stats
 cs stats --type rust       # Rust files only
-cs stats -j                # JSON output (AI-ready)
+cs stats --json            # JSON output
 ```
 
-#### `cs explain <pattern>` — Explain Regex
+### `cs explain <pattern>` — Explain Regex
 
 ```bash
 cs explain '\s+\w+'         # Explains each token
 cs explain '[A-Z][a-z]+'
 ```
 
-#### `cs schema <command>` — JSON Schema
-
-Print the JSON output schema for any command, useful for AI integration and documentation.
+### `cs history` — Search History
 
 ```bash
-cs schema file             # Schema for `cs file -j`
-cs schema content          # Schema for `cs content -j`
-cs schema symbol           # Schema for `cs symbol -j`
+cs history           # 20 most recent searches
+cs history -l 50     # Last 50 searches
+cs history -j        # JSON output
 ```
 
----
-
-## TUI Mode
-
-CodeScope includes a full interactive terminal UI built with [ratatui](https://github.com/ratatui/ratatui) and [crossterm](https://github.com/crossterm-rs/crossterm).
-
-### Launch
+### `cs config` — Configuration
 
 ```bash
-cs tui                     # Browse current directory
-cs tui --file-type rust    # Filter to Rust files
-cs tui -p /path/to/repo    # Browse specific directory
+cs config    # Show current config and file path
 ```
 
-### Layout
-
-```
-┌─────────────────────────────────────────┐
-│ CodeScope v1.2.0         [?] Help       │
-├────────────────┬────────────────────────┤
-│ Files          │ Preview                 │
-│  > main.rs     │   1 │ use std::io;      │
-│    lib.rs      │   2 │                    │
-│    config.rs   │   3 │ fn main() {        │
-│                │   4 │     println!("hi") │
-├────────────────┤   5 │ }                  │
-│ Symbols        │                          │
-│  UserService   │                          │
-│  login_user    │                          │
-├────────────────┤                          │
-│ AI Context     │                          │
-│ Score: 0.92    │                          │
-│ Tokens: 1.2k   │                          │
-└────────────────┴────────────────────────┘
-│ Search: auth handler                     │
-└──────────────────────────────────────────┘
-```
-
-### Key Bindings
-
-| Key | Action |
-|-----|--------|
-| `j` / `↓` | Move down |
-| `k` / `↑` | Move up |
-| `g` | Go to top |
-| `G` | Go to bottom |
-| `n` | Next search result |
-| `N` | Previous search result |
-| `/` | Enter search mode |
-| `o` | Open selected file in `$EDITOR` |
-| `s` | Switch search mode (files → content → symbols) |
-| `c` | Toggle context panel |
-| `f` | Toggle file type filter |
-| `Tab` | Switch between Files and Symbols panels |
-| `?` | Help overlay |
-| `q` / `Ctrl+C` | Quit |
-
----
-
-## Plugin Architecture
-
-CodeScope is extensible through a trait-based plugin system with **9 hook points**.
-
-### Plugin Trait
-
-```rust
-use codescope::plugin::{Plugin, PluginContext, SearchResult};
-
-struct MyPlugin;
-
-impl Plugin for MyPlugin {
-    fn name(&self) -> &str { "my_plugin" }
-
-    fn on_file_search_results(
-        &self,
-        ctx: &PluginContext,
-        results: &mut Vec<SearchResult>,
-    ) {
-        // Modify, filter, or boost search results
-        results.retain(|r| r.score > 50.0);
-    }
-}
-```
-
-### Available Hook Points
-
-| Hook | Trigger |
-|------|---------|
-| `on_file_search_results` | After file search completes |
-| `on_content_search_results` | After content search completes |
-| `on_symbol_search_results` | After symbol search |
-| `on_refs_results` | After reference search |
-| `on_callers_results` | After caller search |
-| `on_context_results` | After context extraction |
-| `on_pack_results` | After prompt packing |
-| `on_graph_results` | After dependency graph |
-| `on_trace_results` | After execution trace |
-
-### Built-in Plugins
-
-| Plugin | Description |
-|--------|-------------|
-| **RecencyBoostPlugin** | Boosts recently modified files in search rankings |
-| **MarkdownFormatterPlugin** | Formats output as Markdown for documentation workflows |
-| **ExtraLanguagesPlugin** | Adds custom symbol extractors for Kotlin, Swift, Ruby, PHP |
-
-### Plugin Discovery
-
-Plugins are loaded from two locations:
-
-```
-~/.codescope/plugins/    # Global plugins (all projects)
-.codescope/plugins/      # Project-local plugins
-```
-
----
-
-## SDKs
-
-### Rust SDK
-
-Programmatic Rust interface for embedding CodeScope in tools and applications.
-
-```toml
-# Cargo.toml
-[dependencies]
-codescope-sdk = { path = "sdk" }
-```
-
-```rust
-use codescope_sdk::CodeScope;
-
-let cs = CodeScope::new("/path/to/repo")?;
-
-// File search
-let files = cs.search_files("config", None, None)?;
-
-// Content search
-let results = cs.search_content("fn main", None, None, None)?;
-
-// Symbol intelligence
-let symbols = cs.find_symbols("UserService", None, None, None)?;
-
-// Repository stats
-let stats = cs.stats(None, None)?;
-
-// Dependency graph
-let graph = cs.dependency_graph(None, "modules", None, None)?;
-
-// Impact analysis
-let impact = cs.impact("utils.rs", ".")?;
-
-// Context extraction
-let ctx = cs.get_context("auth", None, None, None, None)?;
-```
-
-### Python SDK
-
-Python interface wrapping the `cs` CLI binary.
+### `cs completions <shell>` — Shell Completions
 
 ```bash
-cd python/
-pip install .
+cs completions bash    # Bash completions
+cs completions zsh     # Zsh completions
+cs completions fish    # Fish completions
+cs completions powershell  # PowerShell completions
+cs completions elvish  # Elvish completions
 ```
 
-```python
-from codescope import CodeScope
+### `cs schema [command]` — JSON Output Schema
 
-cs = CodeScope()
-
-# Search
-files = cs.search_files("config", extension="toml")
-content = cs.search_content("TODO", file_type="rust")
-
-# Symbols
-symbols = cs.find_symbols("UserService")
-refs = cs.find_references("login_user")
-
-# Context
-context = cs.get_context("auth")
-packed = cs.pack_context("authentication bug", budget=8000)
-
-# Stats & Graph
-stats = cs.stats()
-graph = cs.dependency_graph()
-dot = graph.to_dot()  # Graphviz DOT format
-
-# All results are dataclasses with to_dict()
-print(stats.to_dict())
+```bash
+cs schema             # List all commands with schemas
+cs schema content     # Show schema for content command
 ```
+
+### `cs cache <action>` — Cache Management
+
+```bash
+cs cache stats     # Show entries, size, hit rate
+cs cache clear     # Clear all cached entries
+cs cache cleanup   # Remove expired entries
+```
+
+Cache is stored in `~/.codescope/cache/` as individual JSON files with TTL support.
 
 ---
 
@@ -668,43 +587,31 @@ print(stats.to_dict())
 | **Exact** | `-x` / `--exact` | Precise substring, zero false positives |
 | **Regex** | `--regex` | Full pattern power |
 
----
-
-## JSON Output (`-j`)
-
-Every command supports structured JSON output via the `-j` flag. This is the foundation for AI integration and scripting:
-
-```bash
-# Human-readable
-$ cs content "auth" --type rust -n
-src/auth/mod.rs:15:pub fn authenticate(token: &str) -> Result<User>
-src/auth/handler.rs:8:async fn auth_handler(req: Request) -> Response
-
-# Same query, AI-ready JSON
-$ cs content "auth" --type rust -n -j
-{"results":[{"file":"src/auth/mod.rs","line":15,"content":"pub fn authenticate(token: &str) -> Result<User>"},{"file":"src/auth/handler.rs","line":8,"content":"async fn auth_handler(req: Request) -> Response"}],"count":2,"query":"auth"}
-```
-
-Use `cs schema <command>` to get the exact JSON schema for any command.
+Smart case is enabled by default: case-insensitive unless pattern contains uppercase (like ripgrep).
 
 ---
 
-## Benchmarks
+## JSON Output
 
-CodeScope includes a comprehensive [criterion](https://github.com/bheisler/criterion.rs) benchmark suite covering all core operations.
-
-### Running Benchmarks
+Every command supports `-j` / `--json` for structured output:
 
 ```bash
-cargo bench
+cs file "config" -j
+cs content "TODO" -n -j
+cs symbol "Config" -j
+cs refs "handler" -j
+cs context "auth" -j
+cs graph -j
+cs impact "utils.rs" -j
+cs semantic "database" -j
+cs stats -j
 ```
 
-### Benchmark Coverage
-
-| Suite | Benchmarks |
-|-------|-----------|
-| **search_bench** | File search (fuzzy, extension filter, collect), content search (fuzzy, exact, regex, context, invert), stats |
-| **symbol_bench** | Symbol search (find, refs, callers, list all), context engine (extract, pack, trace), graph (module, call graph, impact) |
+All JSON output includes:
+- `"tool": "codescope"`
+- `"command": "<command name>"`
+- `"count": <result count>`
+- `"results": [...]`
 
 ---
 
@@ -718,148 +625,80 @@ cargo bench
 
 ---
 
-## AI Integration
+## Supported Languages (Symbol Intelligence)
 
-CodeScope is designed as **infrastructure for AI agents**. Three integration paths are available.
+| Language | Extensions | Symbol Types |
+|---|---|---|
+| **Rust** | `.rs` | fn, struct, enum, trait, const, type, mod |
+| **Python** | `.py`, `.pyi`, `.pyw` | def, class |
+| **JavaScript/TypeScript** | `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs` | function, class, const, interface, type, enum |
+| **Go** | `.go` | func, method, struct, interface, type, const |
+| **Java/Kotlin** | `.java`, `.kt`, `.kts` | class, function, interface, enum, object |
+| **C++** | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hxx`, `.h` | class, struct, enum, namespace, method, function, constant, type |
+| **C** | `.c` | struct, enum, function, constant, type |
+| **Ruby** | `.rb` | method, class, module, constant |
+| **PHP** | `.php` | function, class, interface, trait, constant |
+| **Swift** | `.swift` | function, class, struct, protocol, enum, constant, type |
 
-### MCP Protocol (Recommended)
+---
 
-CodeScope includes a built-in [Model Context Protocol](https://modelcontextprotocol.io/) server, compatible with Claude Desktop, Cursor, and any MCP-compatible AI client.
+## Comparison with Other Tools
 
-```json
-// claude_desktop_config.json
-{
-  "mcpServers": {
-    "codescope": {
-      "command": "cs",
-      "args": ["serve", "--mcp", "--path", "/path/to/repo"]
-    }
-  }
-}
-```
-
-**10 MCP tools** are exposed:
-
-| Tool | Description |
-|------|-------------|
-| `search_files` | Fuzzy file search by name |
-| `search_content` | Search text content inside files |
-| `find_symbol` | Find symbol definitions with metadata |
-| `find_references` | Find all references to a symbol |
-| `find_callers` | Find callers of a function |
-| `list_symbols` | List all symbols in a file or directory |
-| `get_context` | Extract ranked context for a topic |
-| `pack_context` | Pack context for LLM prompts |
-| `trace_symbol` | Trace execution flow through calls |
-| `repo_stats` | Repository statistics by language |
-
-### HTTP API
-
-```bash
-# Start the HTTP API
-cs serve --port 4567 --path /path/to/repo
-
-# Query endpoints
-curl "http://localhost:4567/search?q=auth&type=rust"
-curl "http://localhost:4567/symbol?name=UserService"
-curl "http://localhost:4567/context?q=authentication&tokens=4000"
-curl "http://localhost:4567/stats"
-```
-
-### HTTP Bridge (Python)
-
-For environments where the Rust HTTP server needs additional flexibility, a Python HTTP bridge is included in `scripts/`:
-
-```bash
-# Start the bridge
-./scripts/cs-bridge.sh start /path/to/repo --port 4567
-
-# Query
-curl "http://localhost:4567/search?q=auth&type=rust"
-curl "http://localhost:4567/symbol?name=UserService"
-curl "http://localhost:4567/context?q=auth&tokens=4000"
-
-# Stop
-./scripts/cs-bridge.sh stop
-```
-
-The bridge exposes **12 REST endpoints**: `/health`, `/search`, `/files`, `/symbol`, `/refs`, `/callers`, `/symbols`, `/context`, `/pack`, `/trace`, `/stats`, `/where`.
-
-### One-Shot MCP Client
-
-For scripting and automation, use the included MCP client:
-
-```bash
-./scripts/cs-mcp.sh search_files '{"pattern": "config"}'
-./scripts/cs-mcp.sh find_symbol '{"name": "UserService"}'
-./scripts/cs-mcp.sh pack_context '{"description": "auth bug", "budget": 8000}'
-```
+| Feature | `cs` | `fd` | `rg` | `fzf` | `ast-grep` | `ctags` |
+|---------|------|------|------|-------|-------------|---------|
+| Fuzzy file search | Yes | Yes | No | Yes | No | No |
+| Content search | Fuzzy + exact + regex | No | Regex only | No | AST-based | No |
+| Web search | Yes (DuckDuckGo) | No | No | No | No | No |
+| Matching modes | 3 (fuzzy/exact/regex) | 1 (glob) | 1 (regex) | 1 (fuzzy) | 1 (AST) | N/A |
+| Interactive mode | Built-in (`-I`) | Via pipe | Via pipe | Yes | No | No |
+| JSON output | Yes (`-j`) | No | No | No | Yes | No |
+| Config file | Yes | No | Yes | No | No | No |
+| Symbol intelligence | 10 languages | No | No | No | Yes | Yes |
+| Find references | Yes | No | No | No | Yes | No |
+| Call graph | Yes | No | No | No | No | No |
+| Context extraction | Yes | No | No | No | No | No |
+| Dependency graph | Yes | No | No | No | No | No |
+| Impact analysis | Yes | No | No | No | No | No |
+| Semantic search | Yes (TF-IDF) | No | No | No | No | No |
+| AI rewrite | Yes (Ollama/OpenAI) | No | No | No | No | No |
+| MCP server | Yes | No | No | No | No | No |
+| LSP bridge | Yes | No | No | No | No | No |
+| Cross-repo search | Yes | No | No | No | No | No |
+| Parallel processing | Yes (rayon) | Yes | Yes | No | No | No |
+| Written in | Rust | Rust | Rust | Go | Rust | C |
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────┐
-│                 Repository                    │
-│  (files, symbols, dependencies, git history) │
-└──────────────────┬───────────────────────────┘
-                   │
-          ┌────────▼────────┐
-          │    CodeScope     │
-          │    (cs binary)   │
-          │                  │
-          │  ┌────────────┐  │  ┌──────────────┐
-          │  │ File Search │  │  │ Plugin Layer  │
-          │  │ Content S.  │  │  │ 9 hook points│
-          │  │ Symbol Intel│  │  │ Built-in: 3  │
-          │  │ Context Eng.│  │  │ Custom: ∞    │
-          │  │ Dep Graph   │  │  └──────┬───────┘
-          │  │ TUI (ratatui│  │         │
-          │  │ MCP Server  │  │         │
-          │  └────────────┘  │         │
-          └────────┬────────┘─────────┘
-                   │
-       ┌───────────┼───────────┐
-       │                       │
-  ┌────▼─────┐          ┌──────▼──────┐
-  │ Developer │          │  AI Agent   │
-  │  (CLI)   │          │ (MCP/HTTP)  │
-  │ Terminal │          │ JSON / Pipe │
-  │ TUI      │          │ Rust SDK    │
-  └──────────┘          │ Python SDK  │
-                        └─────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        cs CLI (clap)                           │
+│  file  content  web  where  open  recent  across  ...          │
+├─────────────────────────────────────────────────────────────────┤
+│                     Core Engine (28 modules)                    │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │ File Search   │  │ Symbol Intel │  │ Context Engine        │  │
+│  │ Content Search│  │ • symbol     │  │ • context (3-source)  │  │
+│  │ Web Search    │  │ • refs       │  │ • pack (token budget) │  │
+│  │ Where (defs)  │  │ • callers    │  │ • trace (call tree)   │  │
+│  │ Across (x-repo│  │ • symbols    │  │                        │  │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │ Graph/Impact  │  │ AI & LSP     │  │ Caching               │  │
+│  │ • modules     │  │ • MCP server │  │ • FS-backed JSON      │  │
+│  │ • calls       │  │ • HTTP API   │  │ • TTL + size limits   │  │
+│  │ • tree/dot/   │  │ • LSP bridge │  │ • stats/clear/cleanup │  │
+│  │   flat/json   │  │ • semantic   │  │                        │  │
+│  │ • impact BFS  │  │ • rewrite    │  │                        │  │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│  Shared: ignore (walk), rayon, regex, fuzzy-matcher, serde_json │
+├─────────────────────────────────────────────────────────────────┤
+│  Feature flags: web-search (reqwest+scraper)                   │
+│                  interactive (dialoguer)                         │
+└─────────────────────────────────────────────────────────────────┘
 ```
-
-### Design Philosophy
-
-CodeScope is a **pipeline tool**, not a platform. It takes a repository as input and produces structured context as output. This makes it composable — you can pipe `cs` output into any AI agent, CI/CD pipeline, or custom script.
-
-**Done:** File search, content search, symbol intelligence, dependency graph, context engine, MCP protocol, TUI mode, plugin architecture, benchmarks, SDK (Rust + Python).
-**Never:** AI chatbot, code generation, cloud platform. CodeScope is infrastructure.
-
----
-
-## Comparison
-
-| Feature | `cs` | `fd` | `rg` | `fzf` | `ctags` | LSP |
-|---------|------|------|------|-------|---------|-----|
-| Fuzzy file search | Yes | Yes | No | Yes | No | No |
-| Content search | Fuzzy + exact + regex | No | Regex only | No | No | Yes |
-| Symbol intelligence | Grammar-based (12+ langs) | No | No | No | Stale | Yes |
-| Call graph | Yes (`cs graph --type calls`) | No | No | No | No | Partial |
-| Dependency graph | Yes (`cs graph`, `cs impact`) | No | No | No | No | No |
-| Context extraction | Yes (`cs context`, `cs pack`) | No | No | No | No | No |
-| Cross-repo search | Yes | No | No | No | No | No |
-| JSON output | Yes (`-j`) | No | No | No | No | No |
-| MCP protocol | Yes | No | No | No | No | No |
-| AI-ready context | Yes | No | No | No | No | No |
-| Interactive TUI | Built-in (`cs tui`) | No | No | Yes | No | Editor |
-| Plugin system | 9 hooks, built-in + custom | No | No | No | No | No |
-| SDK | Rust + Python | No | No | No | No | Various |
-| Local-first | Yes | Yes | Yes | Yes | Yes | Yes |
-| Zero runtime deps | Yes | Yes | Yes | Yes | Yes | No |
-| Written in | Rust | Rust | Rust | Go | C | Various |
 
 ---
 
@@ -871,10 +710,44 @@ Create `~/.codescope.json` for persistent defaults:
 {
   "default_limit": 50,
   "default_depth": 5,
+  "default_exclude": ["target", "node_modules", "dist"],
+  "default_extension": "rs",
   "color": true,
-  "web_timeout": 15
+  "web_timeout": 15,
+  "interactive": false
 }
 ```
+
+Set config path via environment variable:
+```bash
+export CS_CONFIG=/path/to/custom/codescope.json
+```
+
+Show current config:
+```bash
+cs config
+```
+
+---
+
+## File Type Presets
+
+Use `--type <preset>` with any search command:
+
+| Preset | Extensions |
+|---|---|
+| `rust` | `.rs` |
+| `python` | `.py`, `.pyi`, `.pyw` |
+| `js` | `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs` |
+| `web` | `.html`, `.htm`, `.css`, `.scss`, `.sass`, `.less`, `.vue`, `.svelte` |
+| `c` | `.c`, `.h` |
+| `cpp` | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hxx`, `.h` |
+| `go` | `.go` |
+| `java` | `.java`, `.kt`, `.kts` |
+| `config` | `.toml`, `.yaml`, `.yml`, `.json`, `.ini`, `.cfg`, `.conf`, `.env` |
+| `doc` | `.md`, `.txt`, `.rst`, `.adoc`, `.org` |
+| `data` | `.csv`, `.tsv`, `.xml`, `.sql` |
+| `shell` | `.sh`, `.bash`, `.zsh`, `.fish`, `.ps1` |
 
 ---
 
@@ -888,26 +761,13 @@ cargo test
 
 ## Roadmap
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for the full development roadmap.
-
-**All phases complete:**
-
-| Phase | Feature | Status |
-|-------|---------|--------|
-| Phase 1 | Repositioning | Done |
-| Phase 2 | Structured JSON Output | Done |
-| Phase 3 | Symbol Intelligence | Done |
-| Phase 4 | Context Engine | Done |
-| Phase 5 | Dependency Graph | Done |
-| Phase 6 | TUI Mode | Done |
-| Phase 7 | MCP Protocol Server | Done |
-| Phase 8 | Performance Excellence (Benchmarks) | Done |
-| Phase 9 | Plugin Architecture & SDKs | Done |
-
-**Future considerations:**
-- VS Code extension (via LSP bridge)
-- Neovim plugin
-- Community plugin registry
+| Phase | Status | Features |
+|---|---|---|
+| **v1.0** | Completed | File search, content search, web search, interactive mode, replace, completions |
+| **v1.1** | Completed | `where` (definitions), `across` (cross-repo), `open`, `recent`, `explain`, `history`, `stats`, `config` |
+| **v1.2** | Completed | `symbol`, `refs`, `callers`, `symbols` (Symbol Intelligence), `context`, `pack`, `trace` (Context Engine), `graph`, `impact` (Dependency Graph) |
+| **v1.3** | Completed | `serve` (MCP + HTTP), `semantic` (TF-IDF), `rewrite` (AI-powered), `lsp-bridge`, `cache`, `schema` |
+| **v1.4** | Future | Incremental file watching, git blame integration, smarter caching |
 
 ---
 
@@ -915,9 +775,13 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for the full development roadmap.
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+---
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
+
+---
 
 ## License
 
@@ -926,9 +790,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>Repository Intelligence Infrastructure for the AI Coding Era</strong><br>
-  Built with Rust by <a href="https://github.com/Arga-Wicaksono">Arga Wicaksono</a> ·
+  <strong>Built with Rust by Arga Wicaksono</strong> ·
   <a href="https://github.com/Arga-Wicaksono/codescope">GitHub</a> ·
-  <a href="https://github.com/Arga-Wicaksono/codescope/releases">Releases</a> ·
-  <a href="docs/ROADMAP.md">Roadmap</a>
+  <a href="https://github.com/Arga-Wicaksono/codescope/releases">Releases</a>
 </p>
