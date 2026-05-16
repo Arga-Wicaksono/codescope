@@ -4,11 +4,13 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Rust-1.70+-orange?style=flat-square&logo=rust&logoColor=white" alt="Rust">
-  <img src="https://img.shields.io/badge/version-1.1.0-blue?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.0-blue?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-yellow?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/tests-170%2B%20passed-brightgreen?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-104%2B%20passed-brightgreen?style=flat-square" alt="Tests">
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/MCP-Protocol-8B5CF6?style=flat-square" alt="MCP">
+  <img src="https://img.shields.io/badge/TUI-ratatui-78B159?style=flat-square" alt="TUI">
+  <img src="https://img.shields.io/badge/plugins-9%20hooks-FF6B6B?style=flat-square" alt="Plugins">
 </p>
 
 <h1 align="center">CodeScope</h1>
@@ -28,6 +30,9 @@
   <a href="#installation">Install</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="#commands">Commands</a> ·
+  <a href="#tui-mode">TUI</a> ·
+  <a href="#plugin-architecture">Plugins</a> ·
+  <a href="#sdks">SDKs</a> ·
   <a href="#ai-integration">AI Integration</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#roadmap">Roadmap</a>
@@ -47,24 +52,25 @@ Large codebases are hard to understand — for humans navigating unfamiliar code
 | `LSP` | Editor navigation | Not scriptable, editor-bound |
 | `Sourcegraph` | Code intelligence | Cloud-only, not local-first |
 
-**CodeScope bridges all of these gaps** in a single ~2 MB binary. File search, content search, symbol intelligence, dependency graphing, context extraction, and AI agent integration — all in one tool, local-first, zero runtime dependencies, deterministic results every time.
+**CodeScope bridges all of these gaps** in a single ~2 MB binary. File search, content search, symbol intelligence, dependency graphing, context extraction, interactive TUI browsing, extensible plugin system, and AI agent integration — all in one tool, local-first, zero runtime dependencies, deterministic results every time.
 
 ### Core Principles
 
 | Principle | What it means |
 |-----------|---------------|
 | **Deterministic** | Same query, same results — always. No randomness, no approximation. |
-| **Blazing fast** | Rust-native with rayon parallelism. Built for large repos (100k+ files). |
+| **Blazing fast** | Rust-native with rayon parallelism. Built for large repos (100k+ files). Criterion-benchmarked. |
 | **Scriptable** | Every command outputs structured JSON (`-j`), perfect for pipes and automation. |
 | **AI-consumable** | Stable schemas, ranked results, context extraction built for LLM prompt packing. |
 | **Local-first** | No cloud, no API keys, no network. Everything runs on your machine. |
 | **Zero dependencies** | One static binary. No runtime, no JVM, no Node. Just `cs`. |
+| **Extensible** | Trait-based plugin system with 9 hook points, plus Rust and Python SDKs. |
 
 ---
 
 ## Features
 
-CodeScope packs **25 commands** across six capability pillars into a single binary.
+CodeScope packs **24 commands** across seven capability pillars into a single binary.
 
 ### 1. Search & Navigation
 
@@ -123,12 +129,35 @@ Utilities that make daily development smoother.
 | `cs completions` | Shell completions for bash, zsh, fish, powershell, elvish |
 | `cs schema` | Print JSON output schema for any command |
 
-### 6. AI Agent Integration
+### 6. Interactive TUI
+
+Full terminal UI for browsing and searching code interactively.
+
+| Command | Description |
+|---------|-------------|
+| `cs tui` | Interactive terminal UI with file browser, code preview, and AI context sidebar |
+
+See the [TUI Mode](#tui-mode) section for full details.
+
+### 7. AI Agent Integration
 
 | Command | Description |
 |---------|-------------|
 | `cs serve --mcp` | MCP (Model Context Protocol) server via stdio/JSON-RPC 2.0 |
 | `cs serve` | HTTP API for programmatic access |
+
+### 8. Plugin Architecture
+
+Extensible via a trait-based plugin system with 9 hook points.
+
+| Feature | Description |
+|---------|-------------|
+| `Plugin` trait | Pre/post hooks for search, symbols, and context operations |
+| `PluginManager` | Discovery, loading, and lifecycle management |
+| Built-in plugins | RecencyBoost, MarkdownFormatter, ExtraLanguages |
+| Plugin discovery | `~/.codescope/plugins/` and `.codescope/plugins/` |
+
+See the [Plugin Architecture](#plugin-architecture) section for full details.
 
 ---
 
@@ -164,14 +193,32 @@ cargo install --path .
 ### Build variants
 
 ```bash
-# Full build (web search + interactive) — default
+# Full build (web search + interactive + TUI) — default
 cargo build --release
 
 # Without web search (smaller binary)
-cargo build --release --no-default-features --features interactive
+cargo build --release --no-default-features --features interactive,tui
+
+# Without TUI (no ratatui/crossterm)
+cargo build --release --no-default-features --features web-search,interactive
 
 # Minimal: file + content only (smallest binary)
 cargo build --release --no-default-features
+```
+
+### Python SDK
+
+```bash
+cd codescope/python
+pip install .
+```
+
+```python
+from codescope import CodeScope
+cs = CodeScope()
+files = cs.search_files("config", extension="toml")
+stats = cs.stats()
+print(stats.to_dict())
 ```
 
 ---
@@ -206,6 +253,13 @@ cs content "auth" --type rust -j    # JSON output for scripts/AI
 cs across "TODO" --workspace ~/projects   # Find across all repos
 cs explain '\s+\w+'                      # Understand regex patterns
 cs web "rust async tutorial" -l 5         # Web search from terminal
+
+# Interactive TUI browsing
+cs tui                               # Full terminal UI
+cs tui --file-type rust               # Filter to Rust files only
+
+# Extend with plugins
+# Place .so/.dylib plugins in ~/.codescope/plugins/
 ```
 
 ---
@@ -331,7 +385,7 @@ Extract ranked context from files, symbols, and dependencies.
 ```bash
 cs context auth               # Context for "auth" topic
 cs context "error handling"   # Multi-word topic
-cs context auth --tokens 4000 # Token budget limit
+cs context auth --max-items 30  # Control result count
 cs context auth -j            # JSON with ranking scores
 ```
 
@@ -415,6 +469,197 @@ cs schema symbol           # Schema for `cs symbol -j`
 
 ---
 
+## TUI Mode
+
+CodeScope includes a full interactive terminal UI built with [ratatui](https://github.com/ratatui/ratatui) and [crossterm](https://github.com/crossterm-rs/crossterm).
+
+### Launch
+
+```bash
+cs tui                     # Browse current directory
+cs tui --file-type rust    # Filter to Rust files
+cs tui -p /path/to/repo    # Browse specific directory
+```
+
+### Layout
+
+```
+┌─────────────────────────────────────────┐
+│ CodeScope v1.2.0         [?] Help       │
+├────────────────┬────────────────────────┤
+│ Files          │ Preview                 │
+│  > main.rs     │   1 │ use std::io;      │
+│    lib.rs      │   2 │                    │
+│    config.rs   │   3 │ fn main() {        │
+│                │   4 │     println!("hi") │
+├────────────────┤   5 │ }                  │
+│ Symbols        │                          │
+│  UserService   │                          │
+│  login_user    │                          │
+├────────────────┤                          │
+│ AI Context     │                          │
+│ Score: 0.92    │                          │
+│ Tokens: 1.2k   │                          │
+└────────────────┴────────────────────────┘
+│ Search: auth handler                     │
+└──────────────────────────────────────────┘
+```
+
+### Key Bindings
+
+| Key | Action |
+|-----|--------|
+| `j` / `↓` | Move down |
+| `k` / `↑` | Move up |
+| `g` | Go to top |
+| `G` | Go to bottom |
+| `n` | Next search result |
+| `N` | Previous search result |
+| `/` | Enter search mode |
+| `o` | Open selected file in `$EDITOR` |
+| `s` | Switch search mode (files → content → symbols) |
+| `c` | Toggle context panel |
+| `f` | Toggle file type filter |
+| `Tab` | Switch between Files and Symbols panels |
+| `?` | Help overlay |
+| `q` / `Ctrl+C` | Quit |
+
+---
+
+## Plugin Architecture
+
+CodeScope is extensible through a trait-based plugin system with **9 hook points**.
+
+### Plugin Trait
+
+```rust
+use codescope::plugin::{Plugin, PluginContext, SearchResult};
+
+struct MyPlugin;
+
+impl Plugin for MyPlugin {
+    fn name(&self) -> &str { "my_plugin" }
+
+    fn on_file_search_results(
+        &self,
+        ctx: &PluginContext,
+        results: &mut Vec<SearchResult>,
+    ) {
+        // Modify, filter, or boost search results
+        results.retain(|r| r.score > 50.0);
+    }
+}
+```
+
+### Available Hook Points
+
+| Hook | Trigger |
+|------|---------|
+| `on_file_search_results` | After file search completes |
+| `on_content_search_results` | After content search completes |
+| `on_symbol_search_results` | After symbol search |
+| `on_refs_results` | After reference search |
+| `on_callers_results` | After caller search |
+| `on_context_results` | After context extraction |
+| `on_pack_results` | After prompt packing |
+| `on_graph_results` | After dependency graph |
+| `on_trace_results` | After execution trace |
+
+### Built-in Plugins
+
+| Plugin | Description |
+|--------|-------------|
+| **RecencyBoostPlugin** | Boosts recently modified files in search rankings |
+| **MarkdownFormatterPlugin** | Formats output as Markdown for documentation workflows |
+| **ExtraLanguagesPlugin** | Adds custom symbol extractors for Kotlin, Swift, Ruby, PHP |
+
+### Plugin Discovery
+
+Plugins are loaded from two locations:
+
+```
+~/.codescope/plugins/    # Global plugins (all projects)
+.codescope/plugins/      # Project-local plugins
+```
+
+---
+
+## SDKs
+
+### Rust SDK
+
+Programmatic Rust interface for embedding CodeScope in tools and applications.
+
+```toml
+# Cargo.toml
+[dependencies]
+codescope-sdk = { path = "sdk" }
+```
+
+```rust
+use codescope_sdk::CodeScope;
+
+let cs = CodeScope::new("/path/to/repo")?;
+
+// File search
+let files = cs.search_files("config", None, None)?;
+
+// Content search
+let results = cs.search_content("fn main", None, None, None)?;
+
+// Symbol intelligence
+let symbols = cs.find_symbols("UserService", None, None, None)?;
+
+// Repository stats
+let stats = cs.stats(None, None)?;
+
+// Dependency graph
+let graph = cs.dependency_graph(None, "modules", None, None)?;
+
+// Impact analysis
+let impact = cs.impact("utils.rs", ".")?;
+
+// Context extraction
+let ctx = cs.get_context("auth", None, None, None, None)?;
+```
+
+### Python SDK
+
+Python interface wrapping the `cs` CLI binary.
+
+```bash
+cd python/
+pip install .
+```
+
+```python
+from codescope import CodeScope
+
+cs = CodeScope()
+
+# Search
+files = cs.search_files("config", extension="toml")
+content = cs.search_content("TODO", file_type="rust")
+
+# Symbols
+symbols = cs.find_symbols("UserService")
+refs = cs.find_references("login_user")
+
+# Context
+context = cs.get_context("auth")
+packed = cs.pack_context("authentication bug", budget=8000)
+
+# Stats & Graph
+stats = cs.stats()
+graph = cs.dependency_graph()
+dot = graph.to_dot()  # Graphviz DOT format
+
+# All results are dataclasses with to_dict()
+print(stats.to_dict())
+```
+
+---
+
 ## Matching Modes
 
 | Mode | Flag | Best For |
@@ -441,6 +686,25 @@ $ cs content "auth" --type rust -n -j
 ```
 
 Use `cs schema <command>` to get the exact JSON schema for any command.
+
+---
+
+## Benchmarks
+
+CodeScope includes a comprehensive [criterion](https://github.com/bheisler/criterion.rs) benchmark suite covering all core operations.
+
+### Running Benchmarks
+
+```bash
+cargo bench
+```
+
+### Benchmark Coverage
+
+| Suite | Benchmarks |
+|-------|-----------|
+| **search_bench** | File search (fuzzy, extension filter, collect), content search (fuzzy, exact, regex, context, invert), stats |
+| **symbol_bench** | Symbol search (find, refs, callers, list all), context engine (extract, pack, trace), graph (module, call graph, impact) |
 
 ---
 
@@ -545,15 +809,16 @@ For scripting and automation, use the included MCP client:
           │    CodeScope     │
           │    (cs binary)   │
           │                  │
-          │  ┌────────────┐  │
-          │  │ File Search │  │
-          │  │ Content S.  │  │
-          │  │ Symbol Intel│  │
-          │  │ Context Eng.│  │
-          │  │ Dep Graph   │  │
-          │  │ MCP Server  │  │
-          │  └────────────┘  │
-          └────────┬────────┘
+          │  ┌────────────┐  │  ┌──────────────┐
+          │  │ File Search │  │  │ Plugin Layer  │
+          │  │ Content S.  │  │  │ 9 hook points│
+          │  │ Symbol Intel│  │  │ Built-in: 3  │
+          │  │ Context Eng.│  │  │ Custom: ∞    │
+          │  │ Dep Graph   │  │  └──────┬───────┘
+          │  │ TUI (ratatui│  │         │
+          │  │ MCP Server  │  │         │
+          │  └────────────┘  │         │
+          └────────┬────────┘─────────┘
                    │
        ┌───────────┼───────────┐
        │                       │
@@ -561,15 +826,16 @@ For scripting and automation, use the included MCP client:
   │ Developer │          │  AI Agent   │
   │  (CLI)   │          │ (MCP/HTTP)  │
   │ Terminal │          │ JSON / Pipe │
-  └──────────┘          └─────────────┘
+  │ TUI      │          │ Rust SDK    │
+  └──────────┘          │ Python SDK  │
+                        └─────────────┘
 ```
 
 ### Design Philosophy
 
 CodeScope is a **pipeline tool**, not a platform. It takes a repository as input and produces structured context as output. This makes it composable — you can pipe `cs` output into any AI agent, CI/CD pipeline, or custom script.
 
-**Today:** File search, content search, symbol intelligence, dependency graph, context engine, MCP protocol.
-**Next:** TUI mode, performance benchmarks, plugin architecture.
+**Done:** File search, content search, symbol intelligence, dependency graph, context engine, MCP protocol, TUI mode, plugin architecture, benchmarks, SDK (Rust + Python).
 **Never:** AI chatbot, code generation, cloud platform. CodeScope is infrastructure.
 
 ---
@@ -588,7 +854,9 @@ CodeScope is a **pipeline tool**, not a platform. It takes a repository as input
 | JSON output | Yes (`-j`) | No | No | No | No | No |
 | MCP protocol | Yes | No | No | No | No | No |
 | AI-ready context | Yes | No | No | No | No | No |
-| Interactive mode | Built-in (`-I`) | Via pipe | Via pipe | Yes | No | Editor |
+| Interactive TUI | Built-in (`cs tui`) | No | No | Yes | No | Editor |
+| Plugin system | 9 hooks, built-in + custom | No | No | No | No | No |
+| SDK | Rust + Python | No | No | No | No | Various |
 | Local-first | Yes | Yes | Yes | Yes | Yes | Yes |
 | Zero runtime deps | Yes | Yes | Yes | Yes | Yes | No |
 | Written in | Rust | Rust | Rust | Go | C | Various |
@@ -622,18 +890,24 @@ cargo test
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full development roadmap.
 
-**Completed phases:**
-- Phase 1 — Repositioning
-- Phase 2 — Structured JSON Output
-- Phase 3 — Symbol Intelligence
-- Phase 4 — Context Engine
-- Phase 5 — Dependency Graph
-- Phase 7 — MCP Protocol Server
+**All phases complete:**
 
-**Upcoming:**
-- Phase 6 — TUI Mode (ratatui + crossterm)
-- Phase 8 — Performance Excellence (benchmarks, incremental indexing)
-- Phase 9 — Open Source Ecosystem (SDK, plugins, editor extensions)
+| Phase | Feature | Status |
+|-------|---------|--------|
+| Phase 1 | Repositioning | Done |
+| Phase 2 | Structured JSON Output | Done |
+| Phase 3 | Symbol Intelligence | Done |
+| Phase 4 | Context Engine | Done |
+| Phase 5 | Dependency Graph | Done |
+| Phase 6 | TUI Mode | Done |
+| Phase 7 | MCP Protocol Server | Done |
+| Phase 8 | Performance Excellence (Benchmarks) | Done |
+| Phase 9 | Plugin Architecture & SDKs | Done |
+
+**Future considerations:**
+- VS Code extension (via LSP bridge)
+- Neovim plugin
+- Community plugin registry
 
 ---
 
