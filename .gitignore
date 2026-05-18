@@ -1,2 +1,6 @@
 /target/
 Cargo.lock
+demo-frames/
+demo.svg
+typescript.txt
+scripts/render-svg.html
